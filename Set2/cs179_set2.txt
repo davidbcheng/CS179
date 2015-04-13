@@ -25,13 +25,15 @@ can a GK110 begin issuing in 1 clock cycle (assuming no dependencies)?
 For a GK110, GPU arithmetic instruction latency is about 10 ns. The GK110 has
 4 warp schedulers and 2 dispatchers each. This means that in one clock cycle 
 the GK110 can start up to 8 instructions at once. The minimum number of 
-arithmetic instructions is doing one instruction per clock cycle, so by the 
-time the first instruction is finished, the latency period is over and so
-we can continuously perform arithmetic instructions per clock cylce and not
-see the latency of 10ns. We would see 10 instructions before we dont see latency
+arithmetic instructions is doing one instruction per clock cycle, so  We would 
+see 10 instructions before we dont see latency
 anymore. The maximum number of arithmetic instructions is 8 per clock cycle, 
 so the maximum number of arithmetic instructions until we hide the latency is
 8 per ns * 10 ns = 80 instructions.
+by the 
+time the first instruction is finished, the latency period is over and so
+we can continuously perform arithmetic instructions per clock cylce and not
+see the latency of 10ns.
 
 
 Question 1.2: Thread Divergence (6 points)
@@ -47,13 +49,6 @@ if (idx % 32 < 16) {
 }
 
 Does this code diverge? Why or why not?
-
-Yes the code diverges. Half of the threads will have an index that satifies
-(idx % 32 < 16), while the other half will not. The half that safisfies the
-condition will execute foo, while the half will be essentially blocked because
-this is all within a warp and we can only execute the same instructions in a 
-given warp. After the first half finishes, we can start the second half of the
-threads executing bar. Thus, the code diverges.
 
 No the code will not diverge. Within a given warp, all the threads will have the
 same threadIdx.y value, but different threadIdx.x values. This means that
@@ -72,13 +67,9 @@ Does this code diverge? Why or why not?
 (This is a bit of a trick question, either "yes" or "no can be a correct answer
 with appropriate explanation).
 
-Depending on how the warp is defined to choose which threads and what
-threadIdx.x refers to, we could have that all the threads in the same warp
-have the same threadIdx.x value or the 32 threads in the warp have the values
-[0,1,2,...31].
 
 Yes, diverges:
-If the warp has the values threadIdx.x [0,1,2,...,31], the code will diverge.
+Threads will the values threadIdx.x [0,1,2,...,31], the code will diverge.
 For the first iteration, we will have all the threads doing the same 
 "result *= pi;" instruction, but starting with the next iteration when i is 
 incremented, the first thread which has threadIdx.x = 0. Thus, the first
@@ -86,10 +77,6 @@ thread diverges from the rest of the threads by not executing the "result *= pi"
 instruction. The trend continues as i is incremented, with each iteration, 
 another thread will diverge and not execute the same multiply instruction.
 
-No, does not diverge:
-If the warp has the same values of threadIdx.x, the code will not diverge.
-Since all the threads have the same threadIdx.x value, the threads will
-run the exact same code. Thus, the threads will not diverge.
 
 Question 1.3: Coalesced Memory Access (9 points)
 ------------------------------------------------
