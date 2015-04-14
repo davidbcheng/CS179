@@ -61,8 +61,8 @@ void checkTransposed(const float *a, const float *b, int n) {
 
   for (int i = 0; i < 16; i++) {
     for (int j = 0; j < 16; j++) {
-      // printf("%f ", b[j + n * i]);
-      printf("%f ", b[i + n * j]);
+      printf("%f ", b[j + n * i]);
+      // printf("%f ", b[i + n * j]);
     }
     printf("\n");
   }
