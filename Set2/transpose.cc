@@ -28,60 +28,60 @@ inline void gpuAssert(cudaError_t code,
   }
 }
 
-// a and b point to n x n matrices. This method checks that A = B^T.
-void checkTransposed(const float *a, const float *b, int n) {
-  bool correct = true;
-  for (int i = 0; i < n; i++) {
-    for (int j = 0; j < n; j++) {
-      if (a[i + n * j] != b[j + n * i]) {
-        correct = false;
-
-        fprintf(stderr, "Transpose failed: a[%d, %d] != b[%d, %d], %f != %f\n",
-                i, j, j, i, a[i + n * j], b[j + n * i]);
-
-        assert(correct);
-      }
-    }
-  }
-
-  assert(correct);
-}
-
 // // a and b point to n x n matrices. This method checks that A = B^T.
 // void checkTransposed(const float *a, const float *b, int n) {
 //   bool correct = true;
-//   for (int i = 0; i < 16; i++) {
-//     for (int j = 0; j < 16; j++) {
-//       printf("%f ", a[i + n * j]);
-//     }
-//     printf("\n");
-//   }
-
-//   printf("\n\n\n");
-
-//   for (int i = 0; i < 16; i++) {
-//     for (int j = 0; j < 16; j++) {
-//       printf("%f ", b[j + n * i]);
-//       // printf("%f ", b[i + n * j]);
-//     }
-//     printf("\n");
-//   }
-
 //   for (int i = 0; i < n; i++) {
-//       for (int j = 0; j < n; j++) {
-//         if (a[i + n * j] != b[j + n * i]) {
-//           correct = false;
+//     for (int j = 0; j < n; j++) {
+//       if (a[i + n * j] != b[j + n * i]) {
+//         correct = false;
 
-//           fprintf(stderr, "Transpose failed: a[%d, %d] != b[%d, %d], %f != %f\n",
-//                   i, j, j, i, a[i + n * j], b[j + n * i]);
+//         fprintf(stderr, "Transpose failed: a[%d, %d] != b[%d, %d], %f != %f\n",
+//                 i, j, j, i, a[i + n * j], b[j + n * i]);
 
-//           assert(correct);
-//         }
+//         assert(correct);
 //       }
 //     }
+//   }
 
 //   assert(correct);
 // }
+
+// a and b point to n x n matrices. This method checks that A = B^T.
+void checkTransposed(const float *a, const float *b, int n) {
+  bool correct = true;
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      printf("%f ", a[i + n * j]);
+    }
+    printf("\n");
+  }
+
+  printf("\n\n\n");
+
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      printf("%f ", b[j + n * i]);
+      // printf("%f ", b[i + n * j]);
+    }
+    printf("\n");
+  }
+
+  for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        if (a[i + n * j] != b[j + n * i]) {
+          correct = false;
+
+          fprintf(stderr, "Transpose failed: a[%d, %d] != b[%d, %d], %f != %f\n",
+                  i, j, j, i, a[i + n * j], b[j + n * i]);
+
+          assert(correct);
+        }
+      }
+    }
+
+  assert(correct);
+}
 
 // a naive CPU transpose, takes an n x n matrix in input and writes to output
 void cpuTranspose(const float *input, float *output, int n) {
