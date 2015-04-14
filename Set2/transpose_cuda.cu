@@ -103,7 +103,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
 
   int temp_i = 64 * blockIdx.x;
   int temp_j = j;
-  int end_i = i + 4;
+  int end_i = temp_i + 4;
 
   __syncthreads();
 
