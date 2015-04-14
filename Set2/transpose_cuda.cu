@@ -105,10 +105,13 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
   int temp_j = j;
   int end_i = temp_i + 4;
 
+  data_i = 0;
+
   __syncthreads();
 
   for (; temp_i < end_i; temp_i++) {
-    output[(temp_j + threadIdx.x) + n * temp_i] = data[data_j + 65 * data_i];
+    output[(temp_j + threadIdx.x) + n * temp_i] =
+     data[(data_j + 65 * data_i];
     data_j += 1;
   }
   
