@@ -89,7 +89,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
 
   const int i = threadIdx.x + 64 * blockIdx.x;
   int j = 4 * threadIdx.y + 64 * blockIdx.y;
-  int data_i = i % 64;
+  int data_i = threadIdx.x
   int data_j = j % 64;
   const int end_j = j + 4;
 
@@ -104,7 +104,6 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
 
   for (; j < end_j; j++) {
     output[i + n * j] = data[data_j + 65 * data_i];
-    // output[i + n * j] = data[data_i + 65 * data_j];
     data_j += 1;
   }
   
