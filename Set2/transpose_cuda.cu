@@ -3,18 +3,6 @@
 #include "transpose_cuda.cuh"
 
 /**
- * TODO for all kernels (including naive):
- * Leave a comment above all non-coalesced memory accesses and bank conflicts.
- * Make it clear if the suboptimal access is a read or write. If an access is
- * non-coalesced, specify how many cache lines it touches, and if an access
- * causes bank conflicts, say if its a 2-way bank conflict, 4-way bank
- * conflict, etc.
- *
- * Comment all of your kernels.
-*/
-
-
-/**
  * Each block of the naive transpose handles a 64x64 submatrix of the input matrix,
  * with each thread of the block handling a 1x4 section and each warp handling
  * a 32x4 section.
@@ -67,46 +55,63 @@
  */
 __global__
 void naiveTransposeKernel(const float *input, float *output, int n) {
-  // TODO: do not modify code, just comment on suboptimal accesses
-
+  // Calculate where in matrix we are tranposing
   const int i = threadIdx.x + 64 * blockIdx.x;
   int j = 4 * threadIdx.y + 64 * blockIdx.y;
   const int end_j = j + 4;
 
+  // Read from input (i, j) and write to output (j, i)
   for (; j < end_j; j++) {
+  	// Input is stride 1 accessing global memory and is doing a coalesced
+  	// memory access
+  	// Output is stride n accessing global memory and is doing non coalesced
+  	// memory access
     output[j + n * i] = input[i + n * j];
   }
 }
 
 __global__
 void shmemTransposeKernel(const float *input, float *output, int n) {
-  // TODO: Modify transpose kernel to use shared memory. All global memory
-  // reads and writes should be coalesced. Minimize the number of shared
-  // memory bank conflicts (0 bank conflicts should be possible using
-  // padding). Again, comment on all sub-optimal accesses.
-
+  // Allocate shared memory for 65 x 64 element array
+  // 65 is for padding, so we can avoid bank conflicts (gcd(65, 32) = 1)
   __shared__ float data[4160];
 
+  // Compute indicies for reading from input
   const int in_i = threadIdx.x + 64 * blockIdx.x;
   int in_j = 4 * threadIdx.y + 64 * blockIdx.y;
   const int end_in_j = in_j + 4;
 
+  // Compute relative position in shared memory
   int shared_i = threadIdx.x;
   int shared_j = in_j % 64;
 
+  // Copy over input into shared memory in the same position
+  // Note that in a given instruction j is constant and i is stride one
+  // from 0 to 31. Thus each instruction will read from global memory in one
+  // cache line and thus be coalesced memory access
   for (; in_j < end_in_j; in_j++) {
     data[shared_i + 65 * shared_j] = input[in_i + n * in_j];
     shared_j += 1;
   }
 
+  // Decrement j back to original shared j value
   shared_j -= 4;
 
   __syncthreads();
 
+  // We want to write the shared memory into the tranposed block. Thus,
+  // we swap the blockIdx.x with the blockIdx.y and compute the relative 
+  // position for writing to output
   int out_i = threadIdx.x + 64 * blockIdx.y;
   int out_j = 4 * threadIdx.y + 64 * blockIdx.x;
   int end_out_j = out_j + 4;
 
+  // We are writing from shared memory to output
+  // The data in shared memory is read from in stride 65, so in the bank,
+  // this is essentially a stride 1. Thus, we avoid bank conflicts
+  // In addition, out_i is varied from some value x + 0 to x + 31, while
+  // out_j is constant. Thus, we are writing to output in one cache line
+  // Thus, our memory is coalesced.
   for (; out_j < end_out_j; out_j++) {
     output[out_i + n * out_j] = data[shared_j + 65 * shared_i];
     shared_j += 1;
@@ -120,13 +125,47 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
   // Use any optimization tricks discussed so far to improve performance.
   // Consider ILP and loop unrolling.
 
-  const int i = threadIdx.x + 64 * blockIdx.x;
-  int j = 4 * threadIdx.y + 64 * blockIdx.y;
-  const int end_j = j + 4;
+  // Allocate shared memory for 65 x 64 element array
+  // 65 is for padding, so we can avoid bank conflicts (gcd(65, 32) = 1)
+  __shared__ float data[4160];
 
-  for (; j < end_j; j++) {
-    output[j + n * i] = input[i + n * j];
-  }
+  // Compute indicies for reading from input
+  const int in_i = threadIdx.x + 64 * blockIdx.x;
+  int in_j = 4 * threadIdx.y + 64 * blockIdx.y;
+
+  // Compute relative position in shared memory
+  int shared_i = threadIdx.x;
+  // Division is generally than multiplication, so we replace "in_j % 64"
+  // with the equivlanet "4 * threadIdx.y"
+  int shared_j = 4 * threadIdx.y;
+
+  // We want to write the shared memory into the tranposed block. Thus,
+  // we swap the blockIdx.x with the blockIdx.y and compute the relative 
+  // position for writing to output
+  int out_i = threadIdx.x + 64 * blockIdx.y;
+  int out_j = 4 * threadIdx.y + 64 * blockIdx.x;
+
+  // Copy over input into shared memory in the same position
+  // Note that in a given instruction j is constant and i is stride one
+  // from 0 to 31. Thus each instruction will read from global memory in one
+  // cache line and thus be coalesced memory access
+  data[shared_i + 65 * (shared_j)] = input[in_i + n * (in_j)];
+  data[shared_i + 65 * (shared_j + 1)] = input[in_i + n * (in_j  + 1)];
+  data[shared_i + 65 * (shared_j + 2)] = input[in_i + n * (in_j + 2)];
+  data[shared_i + 65 * (shared_j + 3)] = input[in_i + n * (in_j + 3)];
+
+  __syncthreads();
+
+  // We are writing from shared memory to output
+  // The data in shared memory is read from in stride 65, so in the bank,
+  // this is essentially a stride 1. Thus, we avoid bank conflicts
+  // In addition, out_i is varied from some value x + 0 to x + 31, while
+  // out_j is constant. Thus, we are writing to output in one cache line
+  // Thus, our memory is coalesced.
+  output[out_i + n * (out_j)] = data[shared_j + 65 * shared_i];
+  output[out_i + n * (out_j + 1)] = data[(shared_j + 1) + 65 * shared_i];
+  output[out_i + n * (out_j + 2)] = data[(shared_j + 2) + 65 * shared_i];
+  output[out_i + n * (out_j + 3)] = data[(shared_j + 3) + 65 * shared_i];
 }
 
 void cudaTranspose(const float *d_input,
