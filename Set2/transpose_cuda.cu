@@ -94,7 +94,7 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
   int shared_i = threadIdx.x;
   int shared_j = in_j % 64;
 
-  for (; in_j < end_j; in_j++) {
+  for (; in_j < end_in_j; in_j++) {
     data[shared_i + 65 * shared_j] = input[in_i + n * in_j];
     shared_j += 1;
   }
