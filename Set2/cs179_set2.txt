@@ -184,7 +184,7 @@ Hint: Each line should expand to 5 instructions.
 1. out0 = output[i + 32 * j];
 2. left0 = lhs[i + 32 * k];
 3. right0 = rhs[k + 128 * j];
-4. FMA(out0, left0, right0) // FMA(a, b, c)
+4. FMA(out0, left0, right0) // FMA(a, b, c) out0 += left0 + right0
 5. output[i + 32 * j] = out0
 
 6. out1 = output[i + 32 * j];
@@ -217,6 +217,19 @@ Rewrite the code given at the beginning of this problem to minimize instruction
 dependencies. You can add or delete instructions (deleting an instruction is a
 valid way to get rid of a dependency!) but each iteration of the loop must still
 process 2 values of k.
+
+int i = threadIdx.x;
+int j = threadIdx.y;
+for (int k = 0; k < 128; k += 2) {
+  out0 = output[i + 32 * j];
+  left0 = lhs[i + 32 * k];
+  right0 = rhs[k + 128 * j];
+  out0 += left0 * right0 // FMA
+  left1 = lhs[i + 32 * (k + 1)];
+  right1 = rhs[(k + 1) + 128 * j];
+  out0 += left1 * right1; // FMA
+  output[i + 32 * j] = out0
+}
 
 1. out0 = output[i + 32 * j];
 2. left0 = lhs[i + 32 * k];
@@ -251,7 +264,8 @@ We can take advantage of instruction level parallelism to make the code run
 faster. Having all the loads next to each other will allow for parallel loads
 into the registers. We also took advantage of spatial locality using the cache.
 We switched the order so the lhs array is being accessed sequentially and
-same with rhs array.
+same with rhs array. We can also unroll the for loop so we dont have to
+do another comparison.
 
 ================================================================================
 
@@ -303,9 +317,35 @@ Examples:
 ./transpose 4096 naive
 ./transpose -1 optimal
 
-Copy paste the output of ./transpose.cc into README.txt once you are done.
+Copy paste the output of ./texpranspose.cc into README.txt once you are done.
 Describe the strategies used for performance in either block comments over the
 kernel (as done for naiveTransposeKernel) or in README.txt.
+
+Output (Optimizations are explained in transpose_cuda.cu):
+
+Size 512 naive CPU: 0.297600 ms
+Size 512 GPU memcpy: 0.032160 ms
+Size 512 naive GPU: 0.093088 ms
+Size 512 shmem GPU: 0.029856 ms
+Size 512 optimal GPU: 0.025376 ms
+
+Size 1024 naive CPU: 2.992384 ms
+Size 1024 GPU memcpy: 0.082528 ms
+Size 1024 naive GPU: 0.310368 ms
+Size 1024 shmem GPU: 0.091104 ms
+Size 1024 optimal GPU: 0.085504 ms
+
+Size 2048 naive CPU: 35.343903 ms
+Size 2048 GPU memcpy: 0.263264 ms
+Size 2048 naive GPU: 1.169984 ms
+Size 2048 shmem GPU: 0.337920 ms
+Size 2048 optimal GPU: 0.306016 ms
+
+Size 4096 naive CPU: 156.513565 ms
+Size 4096 GPU memcpy: 1.002816 ms
+Size 4096 naive GPU: 4.098560 ms
+Size 4096 shmem GPU: 1.235584 ms
+Size 4096 optimal GPU: 1.168032 ms
 
 ================================================================================
 
@@ -340,3 +380,12 @@ for (int i = 0; i < n; i++) {
 }
 
 ? List at least 2 ways (don't need more than a sentence or two for each way).
+
+1. Instruction dependencies. You would need to schedule the second vec_add after
+the first vec_add because the result of x + y needs to be stored in a before
+we add z to the updated a. This makes it more difficult and slower to 
+parallelize.
+
+2. More Reads and Writes to global memory. Assuming we are working with 
+global memory here, there are many more global reads and global writes. This is
+because we have to write more intermediate writes and reads to a. 

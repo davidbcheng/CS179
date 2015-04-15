@@ -70,6 +70,33 @@ void naiveTransposeKernel(const float *input, float *output, int n) {
   }
 }
 
+/**
+ * The idea behind shared memory is that it is much faster to access than
+ * global memory and all the threads in a given block can read and write to 
+ * it. Thus, if we read and write from shared memory, we dont have to worry
+ * about accessing the slower global memory and reading / writing coalesced 
+ * memory. However, we do have to worry about bank conflicts, which is when
+ * in a given instruction, two threads access two different addresses that map
+ * to the same index in the 32 slotted bank in shared memory
+
+ * The basics of the algorithm is that each warp copies over a 32 by 4 submatrix
+ * into the relative position of the shared memory. After this, we will write
+ * to different parts of the global output array, so we want all the input
+ * that we want to tranpose in our shared memory. Thus, we will call syncthreads
+ * which is a block level command that will wait for all the threads in a given
+ * block to reach the syncthreads line before continuing. Then, we will 
+ * read from shared memory into the output in the same 32 by 4 submatrix fashion
+ * but with with the block coordinates swapped. 
+
+ * Optimization Notes
+ * We are using only stride 1 to read from input, where each warp stretches
+ * over 128 bytes, thereby reading from only one cache line and having coalesced
+ * access. Similarly, we are only using stride 1 to write into output.
+ *
+ * To avoid bank conflicts, we are using a 65 by 64 array. To write each row
+ * tranposed into a column, we increment by 65. By using a stride 65, we have
+ * that stride gcd(65, 32) == 1, so we avoid bank conflicts.
+ */
 __global__
 void shmemTransposeKernel(const float *input, float *output, int n) {
   // Allocate shared memory for 65 x 64 element array
@@ -119,12 +146,24 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
   
 }
 
+
+/**
+ * We will be updated our shmemTranposeKernel code, but optimized.
+ * The two big optimizations were ILP and loop unrolling.
+ * 
+ * For ILP, we moved all the reads before their dependencies, so that
+ * we could parallelize them without scheduling more IO.
+ *
+ * For loop unrolling, we expanded each for loop into 4 different lines
+ * with each one covering an iteration of the for loop.
+ * 
+ * This provided a 10% increase in performance from the shmem GPU. 
+ * It is faster than GPU memcpy for size 512 size. and around 1.1 times
+ * the time for GPU memcpy for the other sizes
+
+ */
 __global__
 void optimalTransposeKernel(const float *input, float *output, int n) {
-  // TODO: This should be based off of your shmemTransposeKernel.
-  // Use any optimization tricks discussed so far to improve performance.
-  // Consider ILP and loop unrolling.
-
   // Allocate shared memory for 65 x 64 element array
   // 65 is for padding, so we can avoid bank conflicts (gcd(65, 32) = 1)
   __shared__ float data[4160];
