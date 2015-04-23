@@ -21,7 +21,7 @@ using std::endl;
 
 const float PI = 3.14159265358979;
 
-#define AUDIO_ON 1
+#define AUDIO_ON 0
 
 #if AUDIO_ON
     #include <sndfile.h>
@@ -409,7 +409,7 @@ int large_gauss_test(int argc, char **argv){
         of your memory copy. (It's not the same size as the input_data copy.)
         */
 
-        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * N, 
+        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
             cudaMemcpyHostToDevice);
 
 
@@ -420,10 +420,10 @@ int large_gauss_test(int argc, char **argv){
         */
 
         cudaMemset(dev_input_data + sizeof(cufftComplex) * N, 0,
-         	sizeof(cufftComplex) * (padded_length - N));
+         sizeof(cufftComplex) * (padded_length - N));
 
-        cudaMemset(dev_impulse_v + sizeof(cufftComplex) * N, 0,
-        	sizeof(cufftComplex) * (padded_length - N));
+        cudaMemset(dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
+        	sizeof(cufftComplex) * (padded_length - impulse_length));
 
 
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
