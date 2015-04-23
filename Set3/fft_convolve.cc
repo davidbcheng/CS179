@@ -248,8 +248,13 @@ int large_gauss_test(int argc, char **argv){
     Also, unlike in Homework 1, we don't copy our impulse response
     yet, because this is now given to us per-channel. */
 
+    cudaMalloc((void **) &dev_input_data, padded_length * sizeof(cufftComplex));
 
+    // Per-channel output data
+    cudaMalloc((void **) &dev_impulse_v, padded_length * sizeof(cufftComplex));
 
+    // Per-channel impulse response data (change the name later)
+    cudaMalloc((void **)) &dev_out_data, padded_length * sizeof(cufftComplex));
 
 
 // (From Eric's code)
@@ -389,7 +394,10 @@ int large_gauss_test(int argc, char **argv){
         x[n] as read from the input audio file, and not the padding, 
         so be careful with the size of your memory copy. */
 
-
+        /* Copy this channel's input data (stored in input_data)
+        from host memory to the GPU. */
+        cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
+            cudaMemcpyHostToDevice);
 
 
         /* TODO: Copy this channel's impulse response data (stored in impulse_data)
@@ -401,6 +409,9 @@ int large_gauss_test(int argc, char **argv){
         of your memory copy. (It's not the same size as the input_data copy.)
         */
 
+        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_data, 
+            cudaMemcpyHostToDevice);
+
 
         /* TODO: We're only copying to part of the allocated
         memory regions on the GPU above, and we still need to zero-pad.
@@ -408,16 +419,27 @@ int large_gauss_test(int argc, char **argv){
         Set the rest of the memory regions to 0 (recommend using cudaMemset).
         */
 
+        cudaMemset(dev_input_data + sizeof(cufftComplex) * N, 0,
+         sizeof(cufftComplex) * (padded_length - N));
+
+        cudaMemset(dev_impulse_v + sizeof(cufftComplex) * impulse_data, 0,
+        	sizeof(cufftComplex) * (padded_length - impulse_data));
+
 
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
         (You can use the same plan for both, as is done in the lecture examples.)
         */
 
+        cufftHandle plan;
+        int batch = 1;
+        cufftPlan1d(&plan, padded_length, CUFFT_C2C, batch);
+
 
         /* TODO: Run the forward DFT on the input signal and the impulse response. 
         (Do these in-place.) */
 
-
+        cufftExecC2C(plan, dev_input_data, dev_input_data, CUFFT_FORWARD);
+        cufftExecC2C(plan, dev_impulse_v, dev_impulse_v, CUFFT_FORWARD);
 
 
         /* NOTE: This is a function in the fft_convolve_cuda.cu file,
@@ -437,17 +459,14 @@ int large_gauss_test(int argc, char **argv){
         }
 
 
-
-
-
-
         /* TODO: Run the inverse DFT on the output signal. 
         (Do this in-place.) */
 
-
+        cufftExecC2C(plan, dev_out_data, dev_out_data, CUFFT_INVERSE);
 
         /* TODO: Destroy the cuFFT plan. */
 
+        cufftDestroy(plan);
 
         // For testing and timing-control purposes only
         gpuErrchk( cudaMemcpy( output_data_testarr, dev_out_data, padded_length * sizeof(cufftComplex), cudaMemcpyDeviceToHost));
@@ -598,6 +617,7 @@ int large_gauss_test(int argc, char **argv){
         Note that we have a padded-length signal, so be careful of the
         size of the memory copy. */
 
+        cudaMemcpy(output_data, dev_out_data, padded_length, cudaMemcpyDeviceToHost);
 
         cout << endl;
         cout << "CPU normalization constant: " << max_abs_val << endl;

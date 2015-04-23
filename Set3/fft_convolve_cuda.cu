@@ -53,6 +53,24 @@ cudaProdScaleKernel(const cufftComplex *raw_data, const cufftComplex *impulse_v,
     resilient to varying numbers of threads.
 
     */
+
+    // Determine the index of the output data we are writing to by
+    // the block id and the thread id
+    unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    while(index < padded_length)
+    {
+        out_data[index].x = (raw_data[index].x * impulse_v[index].x -
+            raw_data[index].y * impulse_v[index].y) / padded_length;
+
+        out_data[index].y = (raw_data[index].x * impulse_v[index].y -
+            raw_data[index].y * impulse_v[index].x) / padded_length;
+
+        // Compute next index for arbitrary amount of threads
+        index += blockDim.x * gridDim.x;
+    }
+
+
 }
 
 __global__
@@ -108,6 +126,8 @@ void cudaCallProdScaleKernel(const unsigned int blocks,
         const unsigned int padded_length) {
         
     /* TODO: Call the element-wise product and scaling kernel. */
+    cudaProdScaleKernel<<<blocks, threadsPerBlock>>> (raw_data, impulse_v,
+        out_data, padded_length);
 }
 
 void cudaCallMaximumKernel(const unsigned int blocks,
