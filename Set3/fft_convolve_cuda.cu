@@ -63,7 +63,7 @@ cudaProdScaleKernel(const cufftComplex *raw_data, const cufftComplex *impulse_v,
         out_data[index].x = (raw_data[index].x * impulse_v[index].x -
             raw_data[index].y * impulse_v[index].y) / padded_length;
 
-        out_data[index].y = (raw_data[index].x * impulse_v[index].y -
+        out_data[index].y = (raw_data[index].x * impulse_v[index].y +
             raw_data[index].y * impulse_v[index].x) / padded_length;
 
         // Compute next index for arbitrary amount of threads
