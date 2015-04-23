@@ -254,7 +254,7 @@ int large_gauss_test(int argc, char **argv){
     cudaMalloc((void **) &dev_impulse_v, padded_length * sizeof(cufftComplex));
 
     // Per-channel impulse response data (change the name later)
-    cudaMalloc((void **)) &dev_out_data, padded_length * sizeof(cufftComplex));
+    cudaMalloc((void **) &dev_out_data, padded_length * sizeof(cufftComplex));
 
 
 // (From Eric's code)
@@ -409,7 +409,7 @@ int large_gauss_test(int argc, char **argv){
         of your memory copy. (It's not the same size as the input_data copy.)
         */
 
-        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_data, 
+        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
             cudaMemcpyHostToDevice);
 
 
@@ -422,8 +422,8 @@ int large_gauss_test(int argc, char **argv){
         cudaMemset(dev_input_data + sizeof(cufftComplex) * N, 0,
          sizeof(cufftComplex) * (padded_length - N));
 
-        cudaMemset(dev_impulse_v + sizeof(cufftComplex) * impulse_data, 0,
-        	sizeof(cufftComplex) * (padded_length - impulse_data));
+        cudaMemset(dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
+        	sizeof(cufftComplex) * (padded_length - impulse_length));
 
 
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
