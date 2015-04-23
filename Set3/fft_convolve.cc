@@ -396,8 +396,8 @@ int large_gauss_test(int argc, char **argv){
 
         /* Copy this channel's input data (stored in input_data)
         from host memory to the GPU. */
-        // cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
-        //     cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
+            cudaMemcpyHostToDevice);
 
 
         /* TODO: Copy this channel's impulse response data (stored in impulse_data)
@@ -409,8 +409,8 @@ int large_gauss_test(int argc, char **argv){
         of your memory copy. (It's not the same size as the input_data copy.)
         */
 
-        // cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
-        //     cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
+            cudaMemcpyHostToDevice);
 
 
         /* TODO: We're only copying to part of the allocated
@@ -419,23 +419,23 @@ int large_gauss_test(int argc, char **argv){
         Set the rest of the memory regions to 0 (recommend using cudaMemset).
         */
 
-        // cudaMemset(dev_input_data + sizeof(cufftComplex) * N, 0,
-        //  sizeof(cufftComplex) * (padded_length - N));
+        cudaMemset((char *) dev_input_data + sizeof(cufftComplex) * N, 0,
+         sizeof(cufftComplex) * (padded_length - N));
 
-        // cudaMemset(dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
-        // 	sizeof(cufftComplex) * (padded_length - impulse_length));
+        cudaMemset((char *) dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
+        	sizeof(cufftComplex) * (padded_length - impulse_length));
 
-        cudaMemset(dev_input_data, 0,
-         sizeof(cufftComplex) * (padded_length));
+        // cudaMemset(dev_input_data, 0,
+        //  sizeof(cufftComplex) * (padded_length));
 
-        cudaMemset(dev_impulse_v, 0,
-        	sizeof(cufftComplex) * (padded_length));
+        // cudaMemset(dev_impulse_v, 0,
+        // 	sizeof(cufftComplex) * (padded_length));
 
-        cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
-            cudaMemcpyHostToDevice);
+        // cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
+        //     cudaMemcpyHostToDevice);
 
-        cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
-            cudaMemcpyHostToDevice);
+        // cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
+        //     cudaMemcpyHostToDevice);
 
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
         (You can use the same plan for both, as is done in the lecture examples.)
