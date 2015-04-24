@@ -125,14 +125,14 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     
     __syncthreads();
 
-    for(unsigned int s = blockDim.x/2; s > 32; s >>= 1)
-    {
-        if (tid < s)
-        {
-            shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + s]));
-        }
-        __syncthreads();
-    }
+    // for(unsigned int s = blockDim.x/2; s > 32; s >>= 1)
+    // {
+    //     if (tid < s)
+    //     {
+    //         shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + s]));
+    //     }
+    //     __syncthreads();
+    // }
 
     if (blockSize >= 512) 
     {
