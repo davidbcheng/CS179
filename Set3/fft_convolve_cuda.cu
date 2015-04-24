@@ -201,8 +201,7 @@ void cudaCallMaximumKernel(const unsigned int blocks,
     switch(threadsPerBlock)
     {
         case 512:
-            cudaMaximumKernel<512><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<512><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 256:
             cudaMaximumKernel<256><<<blocks, threadsPerBlock, sharedSize >>>
              (out_data, max_abs_val, padded_length); break;
