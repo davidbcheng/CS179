@@ -103,13 +103,14 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     extern __shared__ float shared[];
     unsigned int tid = threadIdx.x;
-    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int i = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
 
 
     shared[tid] = 0.0;
     while(i < padded_length)
     {
-        shared[tid] = fmaxf(shared[tid], out_data[i].x);
+        float max = fmaxf(out_data[i].x, out_data[i + blockDim.x].x)
+        shared[tid] = fmaxf(shared[tid], max);
         // Compute next index for arbitrary amount of threads
         i += blockDim.x * gridDim.x;
     }
