@@ -152,9 +152,9 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     //     __syncthreads(); 
     // }
 
-    if (blockSize >= 512) { if (tid < 256) { fmax(abs(shared[tid]), abs(shared[tid + 256])); } __syncthreads(); }
-    if (blockSize >= 256) { if (tid < 128) { fmax(abs(shared[tid]), abs(shared[tid + 128])); } __syncthreads(); }
-    if (blockSize >= 128) { if (tid < 64)  { fmax(abs(shared[tid]), abs(shared[tid + 64])); } __syncthreads(); }
+    if (blockSize >= 512) { if (tid < 256) { fmaxf(abs(shared[tid]), abs(shared[tid + 256])); } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { fmaxf(abs(shared[tid]), abs(shared[tid + 128])); } __syncthreads(); }
+    if (blockSize >= 128) { if (tid < 64)  { fmaxf(abs(shared[tid]), abs(shared[tid + 64])); } __syncthreads(); }
 
     if (tid < 32) warpReduce<blockSize>(shared, tid);
 
