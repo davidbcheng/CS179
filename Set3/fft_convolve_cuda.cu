@@ -125,36 +125,36 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     
     __syncthreads();
 
-    // if (blockSize >= 512) 
-    // {
-    //     if (tid < 256) 
-    //     {   
-    //         shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 256]));
-    //     }
-    //     __syncthreads(); 
-    // }
+    if (blockSize >= 512) 
+    {
+        if (tid < 256) 
+        {   
+            shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 256]));
+        }
+        __syncthreads(); 
+    }
 
-    // if (blockSize >= 256)
-    // {
-    //     if (tid < 128) 
-    //     {
-    //         shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 128]));
-    //     }
-    //     __syncthreads(); 
-    // }
+    if (blockSize >= 256)
+    {
+        if (tid < 128) 
+        {
+            shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 128]));
+        }
+        __syncthreads(); 
+    }
 
-    // if (blockSize >= 128)
-    // {
-    //     if (tid < 64)
-    //     {
-    //         shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 64]));
-    //     }    
-    //     __syncthreads(); 
-    // }
+    if (blockSize >= 128)
+    {
+        if (tid < 64)
+        {
+            shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 64]));
+        }    
+        __syncthreads(); 
+    }
 
-    if (blockSize >= 512) { if (tid < 256) { shared[tid] = fmaxf(shared[tid], shared[tid + 256]); } __syncthreads(); }
-    if (blockSize >= 256) { if (tid < 128) { shared[tid] = fmaxf(shared[tid], shared[tid + 128]); } __syncthreads(); }
-    if (blockSize >= 128) { if (tid < 64)  { shared[tid] = fmaxf(shared[tid], shared[tid + 64]); } __syncthreads(); }
+    // if (blockSize >= 512) { if (tid < 256) { shared[tid] = fmaxf(shared[tid], shared[tid + 256]); } __syncthreads(); }
+    // if (blockSize >= 256) { if (tid < 128) { shared[tid] = fmaxf(shared[tid], shared[tid + 128]); } __syncthreads(); }
+    // if (blockSize >= 128) { if (tid < 64)  { shared[tid] = fmaxf(shared[tid], shared[tid + 64]); } __syncthreads(); }
 
     if (tid < 32) warpReduce<blockSize>(shared, tid);
 
