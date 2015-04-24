@@ -122,7 +122,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
         if (index < blockDim.x)
         {
-            shared[index] = fmaxf(shread[index], shared[index + s]);
+            shared[index] = fmaxf(shared[index], shared[index + s]);
         }
 
         __syncthreads();
