@@ -108,7 +108,6 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
         compare-float-in-cuda)
 
     */
-
     extern __shared__ float shared[];
     unsigned int tid = threadIdx.x;
     unsigned int i = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
@@ -150,6 +149,7 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     if(tid == 0) atomicMax(max_abs_val, shared[0]);
 }
+
 
 __global__
 void
