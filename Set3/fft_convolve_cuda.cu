@@ -86,33 +86,10 @@ cudaProdScaleKernel(const cufftComplex *raw_data, const cufftComplex *impulse_v,
 template <unsigned int blockSize>
 __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     int padded_length) {
-
-    /* TODO 2: Implement the maximum-finding and subsequent
-    normalization (dividing by maximum).
-
-    There are many ways to do this reduction, and some methods
-    have much better performance than others. 
-
-    For this section: Please explain your approach to the reduction,
-    including why you chose the optimizations you did
-    (especially as they relate to GPU hardware).
-
-    You'll likely find the above atomicMax function helpful.
-    (CUDA's atomicMax function doesn't work for floating-point values.)
-    It's based on two principles:
-        1) From Week 2, any atomic function can be implemented using
-        atomic compare-and-swap.
-        2) One can "represent" floating-point values as integers in
-        a way that preserves comparison, if the sign of the two
-        values is the same. (see http://stackoverflow.com/questions/
-        29596797/can-the-return-value-of-float-as-int-be-used-to-
-        compare-float-in-cuda)
-
-    */
     extern __shared__ float shared[];
     unsigned int tid = threadIdx.x;
     unsigned int i = blockIdx.x * (blockSize * 2) + threadIdx.x;
-
+    unsigned int gridSize = 2 * blockSize * gridDim.x;
 
     shared[tid] = 0.0;
     while(i + blockSize < padded_length)
@@ -120,7 +97,7 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
         float max = fmaxf(abs(out_data[i].x), abs(out_data[i + blockSize].x));
         shared[tid] = fmaxf(shared[tid], max);
         // Compute next index for arbitrary amount of threads
-        i += (2 * blockSize) * gridDim.x;
+        i += gridSize;
     }
     
     __syncthreads();
