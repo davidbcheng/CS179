@@ -207,32 +207,23 @@ void cudaCallMaximumKernel(const unsigned int blocks,
         case 512:
             cudaMaximumKernel<512><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 256:
-            cudaMaximumKernel<256><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<256><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 128:
-            cudaMaximumKernel<128><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<128><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 64:
-            cudaMaximumKernel<64><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<64><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 32:
-            cudaMaximumKernel<32><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<32><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 16:
-            cudaMaximumKernel<16><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<16><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 8:
-            cudaMaximumKernel<8><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<8><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 4:
-            cudaMaximumKernel<4><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<4><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 2:
-            cudaMaximumKernel<2><<<blocks, threadsPerBlock, sharedSize >>>
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<2><<<blocks, threadsPerBlock, sharedSize >>> (out_data, max_abs_val, padded_length); break;
         case 1:
-            cudaMaximumKernel<1><<<blocks, threadsPerBlock, sharedSize >>> 
-             (out_data, max_abs_val, padded_length); break;
+            cudaMaximumKernel<1><<<blocks, threadsPerBlock, sharedSize >>>  (out_data, max_abs_val, padded_length); break;
     }
 }
 
