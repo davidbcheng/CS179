@@ -112,7 +112,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     {
         if (tid % (2 * s) == 0)
         {
-            atomicMax(shared + tid, shared[tid + s];
+            atomicMax(shared + tid, shared[tid + s]);
         }
 
         __syncthreads();
