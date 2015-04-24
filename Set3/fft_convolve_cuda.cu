@@ -31,15 +31,16 @@ __device__ static float atomicMax(float* address, float val)
     return __int_as_float(old);
 }
 
-// __device__ void warpReduce(volatile float* shared, int tid)
-// {
-//     shared[tid] = fmaxf(shared[tid], shared[tid + 32]);
-//     shared[tid] = fmaxf(shared[tid], shared[tid + 16]);
-//     shared[tid] = fmaxf(shared[tid], shared[tid + 8]);
-//     shared[tid] = fmaxf(shared[tid], shared[tid + 4]);
-//     shared[tid] = fmaxf(shared[tid], shared[tid + 2]);
-//     shared[tid] = fmaxf(shared[tid], shared[tid + 1]);
-// }
+Template <unsigned int blockSize>
+__device__ void warpReduce(volatile float* shared, int tid)
+{
+    if(blockSize >= 64) shared[tid] = fmaxf(shared[tid], shared[tid + 32]);
+    if(blockSize >= 32) shared[tid] = fmaxf(shared[tid], shared[tid + 16]);
+    if(blockSize >= 16) shared[tid] = fmaxf(shared[tid], shared[tid + 8]);
+    if(blockSize >=  8) shared[tid] = fmaxf(shared[tid], shared[tid + 4]);
+    if(blockSize >=  4) shared[tid] = fmaxf(shared[tid], shared[tid + 2]);
+    if(blockSize >=  2) shared[tid] = fmaxf(shared[tid], shared[tid + 1]);
+}
 
 __global__
 void
@@ -125,7 +126,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     
     __syncthreads();
 
-    for(unsigned int s = blockDim.x/2; s > 0; s >>= 1)
+    for(unsigned int s = blockDim.x/2; s > 32; s >>= 1)
     {
         if (tid < s)
         {
@@ -134,10 +135,25 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
         __syncthreads();
     }
 
-    // if (tid < 32)
-    // {
-    //     warpReduce(shared, tid);
-    // }
+    if (blockSize >= 512) 
+    {
+        if (tid < 256) { shared[tid] += shared[tid + 256]; } 
+        __syncthreads(); 
+    }
+
+    if (blockSize >= 256)
+    {
+        if (tid < 128) { shared[tid] += shared[tid + 128]; } 
+        __syncthreads(); 
+    }
+
+    if (blockSize >= 128)
+    {
+        if (tid < 64) { shared[tid] += shared[tid + 64]; } 
+        __syncthreads(); 
+    }
+
+    if (tid < 32) warpReduce<blockSize>(shared, tid);
 
     if(tid == 0) atomicMax(max_abs_val, shared[0]);
 }
@@ -170,7 +186,7 @@ void cudaCallProdScaleKernel(const unsigned int blocks,
         cufftComplex *out_data,
         const unsigned int padded_length) {
         
-    /* TODO: Call the element-wise product and scaling kernel. */
+    /* Call the element-wise product and scaling kernel. */
     cudaProdScaleKernel<<<blocks, threadsPerBlock>>> (raw_data, impulse_v,
         out_data, padded_length);
 }
@@ -181,11 +197,40 @@ void cudaCallMaximumKernel(const unsigned int blocks,
         float *max_abs_val,
         const unsigned int padded_length) {
         
-
-    /* TODO 2: Call the max-finding kernel. */
-    cudaMaximumKernel<<<blocks, threadsPerBlock, threadsPerBlock * sizeof(float) >>> (out_data, max_abs_val,
-        padded_length);
-
+    unsigned int sharedSize = threadsPerBlock * sizeof(float);
+    switch(threadsPerBlock)
+    {
+        case 512:
+            cudaMaximumKernel<512><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 256:
+            cudaMaximumKernel<256><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 128:
+            cudaMaximumKernel<128><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 64:
+            cudaMaximumKernel<64><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 32:
+            cudaMaximumKernel<32><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 16:
+            cudaMaximumKernel<16><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 8:
+            cudaMaximumKernel<8><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 4:
+            cudaMaximumKernel<4><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 2:
+            cudaMaximumKernel<2><<<blocks, threadsPerBlock, sharedSize >>>
+             (out_data, max_abs_val, padded_length); break;
+        case 1:
+            cudaMaximumKernel<1><<<blocks, threadsPerBlock, sharedSize >>> 
+             (out_data, max_abs_val, padded_length); break;
+    }
 }
 
 
