@@ -118,9 +118,11 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     for(unsigned int s = 1; s < blockDim.x; s *= 2)
     {
-        if (tid % (2 * s) == 0)
+        int index = 2 * s * tid;
+
+        if (index < blockDim.x)
         {
-            shared[tid] = fmaxf(shared[tid], shared[tid + s]);
+            shared[index] += shared[index + s];
         }
 
         __syncthreads();
