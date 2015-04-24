@@ -106,6 +106,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 
+    shread[tid] = 0.0;
     while(i < padded_length)
     {
         shared[tid] = fmaxf(shared[tid], out_data[i].x);
@@ -119,10 +120,6 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     {
         if (tid % (2 * s) == 0)
         {
-            // if (shared[tid] < shared[tid + s].x)
-            // {
-            //     shared[tid] = shared[tid + s].x;
-            // }
             shared[tid] = fmaxf(shared[tid], shared[tid + s]);
         }
 
