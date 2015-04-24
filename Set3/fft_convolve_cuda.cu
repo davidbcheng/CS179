@@ -102,7 +102,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     */
 
     __shared__ float shared[padded_length];
-    unsigned int tid = threadIdx.x;
+    const unsigned int tid = threadIdx.x;
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     shared[tid] = out_data[i];
