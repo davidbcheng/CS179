@@ -101,8 +101,8 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     */
 
-    __shared__ float shared[padded_length];
-    const unsigned int tid = threadIdx.x;
+    extern __shared__ float shared[];
+    unsigned int tid = threadIdx.x;
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     shared[tid] = out_data[i];
@@ -112,13 +112,13 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     {
         if (tid % (2 * s) == 0)
         {
-            atomicMax(shared + tid, shared[tid + s]);
+            shared[tid] = max(shared[tid], shared[tid + s]);
         }
 
         __syncthreads();
     }
 
-    atomicMax(max_abs_val, shared[0]);
+    if(tid == 0) atomicMax(max_abs_val, shared[0]);
 }
 
 __global__
@@ -164,7 +164,7 @@ void cudaCallMaximumKernel(const unsigned int blocks,
         
 
     /* TODO 2: Call the max-finding kernel. */
-    cudaMaximumKernel<<<blocks, threadsPerBlock>>> (out_data, max_abs_val,
+    cudaMaximumKernel<<<blocks, threadsPerBlock, threadsPerBlock * sizeof(float) >>> (out_data, max_abs_val,
         padded_length);
 
 }
