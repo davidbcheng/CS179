@@ -2,7 +2,6 @@
  * Kevin Yuh, 2014 */
 
 #include <cstdio>
-#include <stdio.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
 
@@ -116,7 +115,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
             // {
             //     shared[tid] = shared[tid + s].x;
             // }
-            shared[tid] = max(shared[tid], shared[tid + s]);
+            shared[tid] = maxf(shared[tid], shared[tid + s]);
         }
 
         __syncthreads();
@@ -140,7 +139,6 @@ cudaDivideKernel(cufftComplex *out_data, float *max_abs_val,
     while(index < padded_length)
     {
         out_data[index].x = out_data[index].x / *(max_abs_val);
-        out_data[index].y = out_data[index].y / *(max_abs_val);
         // Compute next index for arbitrary amount of threads
         index += blockDim.x * gridDim.x;
     }
