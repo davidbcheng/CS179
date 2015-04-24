@@ -117,7 +117,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     
     __syncthreads();
 
-    for(unsigned int s = blockDim.x/2; s > 32; s >>= 1)
+    for(unsigned int s = blockDim.x/2; s >= 32; s >>= 1)
     {
         if (tid < s)
         {
