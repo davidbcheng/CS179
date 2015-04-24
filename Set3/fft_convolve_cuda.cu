@@ -31,7 +31,7 @@ __device__ static float atomicMax(float* address, float val)
     return __int_as_float(old);
 }
 
-Template <unsigned int blockSize>
+template <unsigned int blockSize>
 __device__ void warpReduce(volatile float* shared, int tid)
 {
     if(blockSize >= 64) shared[tid] = fmaxf(shared[tid], shared[tid + 32]);
@@ -82,9 +82,8 @@ cudaProdScaleKernel(const cufftComplex *raw_data, const cufftComplex *impulse_v,
 
 }
 
-__global__
-void
-cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
+template <unsigned int blockSize>
+__global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     int padded_length) {
 
     /* TODO 2: Implement the maximum-finding and subsequent
