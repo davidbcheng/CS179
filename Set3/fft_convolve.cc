@@ -425,18 +425,6 @@ int large_gauss_test(int argc, char **argv){
         cudaMemset((char *) dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
         	sizeof(cufftComplex) * (padded_length - impulse_length));
 
-        // cudaMemset(dev_input_data, 0,
-        //  sizeof(cufftComplex) * (padded_length));
-
-        // cudaMemset(dev_impulse_v, 0,
-        // 	sizeof(cufftComplex) * (padded_length));
-
-        // cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
-        //     cudaMemcpyHostToDevice);
-
-        // cudaMemcpy(dev_impulse_v, impulse_data, sizeof(cufftComplex) * impulse_length, 
-        //     cudaMemcpyHostToDevice);
-
         /* TODO: Create a cuFFT plan for the forward and inverse transforms. 
         (You can use the same plan for both, as is done in the lecture examples.)
         */
@@ -578,8 +566,12 @@ int large_gauss_test(int argc, char **argv){
         /* TODO 2: Allocate memory to store the maximum magnitude found. 
         (You only need enough space for one floating-point number.) */
 
+        cudaMalloc((void **) &dev_max_abs_val, sizeof(float));
+
         /* TODO 2: Set it to 0 in preparation for running. 
         (Recommend using cudaMemset) */
+
+        cudaMemset(dev_max_abs_val, 0, sizeof(float));
 
 
         /* NOTE: This is a function in the fft_convolve_cuda.cu file,

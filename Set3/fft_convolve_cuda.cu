@@ -101,7 +101,24 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
 
     */
 
+    __shared__ float shared[padded_length];
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
+    shared[tid] = out_data[i];
+    __syncthreads();
+
+    for(unsigned int s = 1; s < padded_length; s *= 2)
+    {
+        if (tid % (2 * s) == 0)
+        {
+            atomicMax(shared + tid, shared[tid + s];
+        }
+
+        __syncthreads();
+    }
+
+    atomicMax(max_abs_val, shared[0]);
 }
 
 __global__
@@ -115,6 +132,15 @@ cudaDivideKernel(cufftComplex *out_data, float *max_abs_val,
     This kernel should be quite short.
     */
 
+    unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+    while(index < padded_length)
+    {
+        out_data[index].x = out_data[index].x / *(max_abs_val);
+        out_data[index].y = out_data[index].y / *(max_abs_val);
+    }
+
+    // Compute next index for arbitrary amount of threads
+    index += blockDim.x * gridDim.x;
 }
 
 
@@ -138,6 +164,8 @@ void cudaCallMaximumKernel(const unsigned int blocks,
         
 
     /* TODO 2: Call the max-finding kernel. */
+    cudaMaximumKernel<<<blocks, threadsPerBlock>>> (out_data, max_abs_val,
+        padded_length);
 
 }
 
@@ -149,4 +177,6 @@ void cudaCallDivideKernel(const unsigned int blocks,
         const unsigned int padded_length) {
         
     /* TODO 2: Call the division kernel. */
+    cudaDivideKernel<<<blocks, threadsPerBlock>>> (out_data, max_abs_val, 
+        padded_length);
 }
