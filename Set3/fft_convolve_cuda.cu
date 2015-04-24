@@ -117,13 +117,23 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     
     __syncthreads();
 
-    for(unsigned int s = blockDim.x/2; s > 0; s >>= 1)
+    for(unsigned int s = blockDim.x/2; s > 32; s >>= 1)
     {
         if (tid < s)
         {
             shared[tid] = fmaxf(shared[tid], shared[tid + s]);
         }
         __syncthreads();
+    }
+
+    if (tid < 32)
+    {
+        shared[tid] = fmaxf(shared[tid], shared[tid + 32]);
+        shared[tid] = fmaxf(shared[tid], shared[tid + 16]);
+        shared[tid] = fmaxf(shared[tid], shared[tid + 8]);
+        shared[tid] = fmaxf(shared[tid], shared[tid + 4]);
+        shared[tid] = fmaxf(shared[tid], shared[tid + 2]);
+        shared[tid] = fmaxf(shared[tid], shared[tid + 1]);
     }
 
     if(tid == 0) atomicMax(max_abs_val, shared[0]);
