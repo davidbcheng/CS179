@@ -106,7 +106,7 @@ cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 
-    shread[tid] = 0.0;
+    shared[tid] = 0.0;
     while(i < padded_length)
     {
         shared[tid] = fmaxf(shared[tid], out_data[i].x);
