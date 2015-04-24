@@ -34,12 +34,12 @@ __device__ static float atomicMax(float* address, float val)
 template <unsigned int blockSize>
 __device__ void warpReduce(volatile float* shared, int tid)
 {
-    if(blockSize >= 64) shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 32]));
-    if(blockSize >= 32) shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 16]));
-    if(blockSize >= 16) shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 8]));
-    if(blockSize >=  8) shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 4]));
-    if(blockSize >=  4) shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 2]));
-    if(blockSize >=  2) shared[tid] = fmaxf(abs(shared[tid]), abs(shared[tid + 1]));
+    if(blockSize >= 64) shared[tid] = fmaxf(shared[tid], shared[tid + 32]);
+    if(blockSize >= 32) shared[tid] = fmaxf(shared[tid], shared[tid + 16]);
+    if(blockSize >= 16) shared[tid] = fmaxf(shared[tid], shared[tid + 8]);
+    if(blockSize >=  8) shared[tid] = fmaxf(shared[tid], shared[tid + 4]);
+    if(blockSize >=  4) shared[tid] = fmaxf(shared[tid], shared[tid + 2]);
+    if(blockSize >=  2) shared[tid] = fmaxf(shared[tid], shared[tid + 1]);
 }
 
 
@@ -152,9 +152,9 @@ __global__ void cudaMaximumKernel(cufftComplex *out_data, float *max_abs_val,
     //     __syncthreads(); 
     // }
 
-    if (blockSize >= 512) { if (tid < 256) { fmaxf(abs(shared[tid]), abs(shared[tid + 256])); } __syncthreads(); }
-    if (blockSize >= 256) { if (tid < 128) { fmaxf(abs(shared[tid]), abs(shared[tid + 128])); } __syncthreads(); }
-    if (blockSize >= 128) { if (tid < 64)  { fmaxf(abs(shared[tid]), abs(shared[tid + 64])); } __syncthreads(); }
+    if (blockSize >= 512) { if (tid < 256) { fmaxf(shared[tid], shared[tid + 256]); } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { fmaxf(shared[tid], shared[tid + 128]); } __syncthreads(); }
+    if (blockSize >= 128) { if (tid < 64)  { fmaxf(shared[tid], shared[tid + 64]); } __syncthreads(); }
 
     if (tid < 32) warpReduce<blockSize>(shared, tid);
 
