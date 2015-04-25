@@ -393,13 +393,6 @@ int large_gauss_test(int argc, char **argv){
         cudaMemcpy(dev_impulse_v, impulse_data,
         	sizeof(cufftComplex) * impulse_length, cudaMemcpyHostToDevice);
 
-
-        /* TODO: We're only copying to part of the allocated
-        memory regions on the GPU above, and we still need to zero-pad.
-        (See Lecture 9 for details on padding.)
-        Set the rest of the memory regions to 0 (recommend using cudaMemset).
-        */
-
         // We need to zero pad the rest of input data, so we increment
         // the size of N (from 0 to N is our input data), and we pad the
         // rest to padded_length
