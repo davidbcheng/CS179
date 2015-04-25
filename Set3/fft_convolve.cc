@@ -246,13 +246,13 @@ int large_gauss_test(int argc, char **argv){
 	*/
 
 	// input_data
-    cudaMalloc((void **) &dev_input_data, padded_length * sizeof(cufftComplex));
+    gpuErrchk(cudaMalloc((void **) &dev_input_data, padded_length * sizeof(cufftComplex)));
 
     // impulse data
-    cudaMalloc((void **) &dev_impulse_v, padded_length * sizeof(cufftComplex));
+    gpuErrchk(cudaMalloc((void **) &dev_impulse_v, padded_length * sizeof(cufftComplex)));
 
     // output data
-    cudaMalloc((void **) &dev_out_data, padded_length * sizeof(cufftComplex));
+    gpuErrchk(cudaMalloc((void **) &dev_out_data, padded_length * sizeof(cufftComplex)));
 
 
 // (From Eric's code)
@@ -385,25 +385,25 @@ int large_gauss_test(int argc, char **argv){
 
         /* Copy this channel's input data (stored in input_data)
         from host memory to the GPU. */
-        cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
-            cudaMemcpyHostToDevice);
+        gpuErrchk(cudaMemcpy(dev_input_data, input_data, sizeof(cufftComplex) * N, 
+            cudaMemcpyHostToDevice));
 
         /* Copy this channel's impulse data (stored in impulse_data)
         from host memory to the GPU. */ 
-        cudaMemcpy(dev_impulse_v, impulse_data,
-        	sizeof(cufftComplex) * impulse_length, cudaMemcpyHostToDevice);
+        gpuErrchk(cudaMemcpy(dev_impulse_v, impulse_data,
+        	sizeof(cufftComplex) * impulse_length, cudaMemcpyHostToDevice));
 
         // We need to zero pad the rest of input data, so we increment
         // the size of N (from 0 to N is our input data), and we pad the
         // rest to padded_length
-        cudaMemset((char *) dev_input_data + sizeof(cufftComplex) * N, 0,
-         sizeof(cufftComplex) * (padded_length - N));
+        gpuErrchk(cudaMemset((char *) dev_input_data + sizeof(cufftComplex) * N, 0,
+         sizeof(cufftComplex) * (padded_length - N)));
 
         // We need to zero pad the rest of impulse data, so we increment
         // the size of impulse_length (from 0 to impulse_length is our impulse
         // data), and we pad the rest to padded_length        
-        cudaMemset((char *) dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
-        	sizeof(cufftComplex) * (padded_length - impulse_length));
+        gpuErrchk(cudaMemset((char *) dev_impulse_v + sizeof(cufftComplex) * impulse_length, 0,
+        	sizeof(cufftComplex) * (padded_length - impulse_length)));
 
         // Make a cudaFFT plan for forward and inverse transforms with batch 
         // as 1
@@ -540,10 +540,10 @@ int large_gauss_test(int argc, char **argv){
         // Also need to memset to 0 for baseline value
 
         // Allocate space in memory to store the max magnitude
-        cudaMalloc((void **) &dev_max_abs_val, sizeof(float));
+        gpuErrchk(cudaMalloc((void **) &dev_max_abs_val, sizeof(float)));
 
         // Set the float value to 0
-        cudaMemset(dev_max_abs_val, 0, sizeof(float));
+        gpuErrchk(cudaMemset(dev_max_abs_val, 0, sizeof(float)));
 
 
         // Use kernel to compute maximum value from dev_out_data
@@ -578,8 +578,8 @@ int large_gauss_test(int argc, char **argv){
             dev_max_abs_val, 1 * sizeof(float), cudaMemcpyDeviceToHost) );
 
         // Copy the output signal back form the GPU to host
-        cudaMemcpy(output_data, dev_out_data, padded_length,
-        	cudaMemcpyDeviceToHost);
+        gpuErrchk(cudaMemcpy(output_data, dev_out_data, padded_length,
+        	cudaMemcpyDeviceToHost));
 
         cout << endl;
         cout << "CPU normalization constant: " << max_abs_val << endl;
