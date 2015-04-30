@@ -59,8 +59,8 @@ cudaHighPassKernel(cufftComplex *raw_data, int length) {
 
     while(index < length)
     {
-        raw_data[index].x = fabsf(1 - (2 * index) / length));
-        raw_data[index].y = fabsf(1 - (2 * index) / length));
+        raw_data[index].x = fabsf(1 - (2 * index) / length);
+        raw_data[index].y = fabsf(1 - (2 * index) / length);
 
         index += blockDim.x + gridDim.x;
     }
@@ -214,12 +214,12 @@ int main(int argc, char** argv){
         CUFFT_C2R, batch);
 
 
-    cufftExecC2C(&plan, dev_sinogram_cmplx, dev_sinogram_cmplx, CUFFT_FORWARD);
+    cufftExecC2C(plan, dev_sinogram_cmplx, dev_sinogram_cmplx, CUFFT_FORWARD);
 
     cudaHighPassKernel<<<nBlocks, threadsPerBlock>>> (dev_sinogram_cmplx,
         sinogram_width*nAngles*sizeof(cufftComplex));
 
-    cufftExecC2R(&plan2, dev_sinogram_float, dev_sinogram_cmplx, CUFFT_INVERSE);
+    cufftExecC2R(plan2, dev_sinogram_float, dev_sinogram_cmplx, CUFFT_INVERSE);
     cufftDestroy(plan);
     cufftDestroy(plan2);
 
@@ -235,7 +235,7 @@ int main(int argc, char** argv){
 
     cudaMalloc((void **) &output_dev, size_result);
     cudaBackProjectionKernel <<<nBlocks, threadsPerBlock>>> (dev_sinogram_float,
-     output_dev, size_result, nAngles, sinogram_width, length);
+     output_dev, size_result, nAngles, sinogram_width, height);
     cudaMemcpy(output_host, output_dev, size_result, cudaMemcpyDeviceToHost);
 
     cudaFree(dev_sinogram_float);
