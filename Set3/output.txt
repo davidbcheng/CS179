@@ -1,0 +1,62 @@
+dcheng@haru:~/CS179/Set3$ ./fft_convolve 512 32
+
+N (number of samples per channel):    10000000
+
+Impulse length (number of samples per channel):    2001
+
+CPU convolution...
+GPU convolution...
+No kernel error detected
+Comparing...
+
+Successful output
+
+CPU time (convolve): 16767.6 milliseconds
+GPU time (convolve): 913.599 milliseconds
+
+Speedup factor (convolution): 18.3534
+
+
+CPU normalization...
+GPU normalization...
+No kernel error detected
+No kernel error detected
+
+CPU normalization constant: 0.504522
+GPU normalization constant: 0.504522
+
+CPU time (normalization): 21.6008 milliseconds
+GPU time (normalization): 2.20672 milliseconds
+
+Speedup factor (normalization): 9.78866
+
+
+
+
+CPU convolution...
+GPU convolution...
+No kernel error detected
+Comparing...
+
+Successful output
+
+CPU time (convolve): 16697.7 milliseconds
+GPU time (convolve): 844.993 milliseconds
+
+Speedup factor (convolution): 19.7607
+
+
+CPU normalization...
+GPU normalization...
+No kernel error detected
+No kernel error detected
+
+CPU normalization constant: 0.502063
+GPU normalization constant: 0.502063
+
+CPU time (normalization): 21.5513 milliseconds
+GPU time (normalization): 2.07843 milliseconds
+
+Speedup factor (normalization): 10.369
+
+
