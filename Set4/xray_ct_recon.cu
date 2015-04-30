@@ -219,7 +219,7 @@ int main(int argc, char** argv){
     cudaHighPassKernel<<<nBlocks, threadsPerBlock>>> (dev_sinogram_cmplx,
         sinogram_width*nAngles*sizeof(cufftComplex));
 
-    cufftExecC2R(plan2, dev_sinogram_float, dev_sinogram_cmplx, CUFFT_INVERSE);
+    cufftExecC2R(plan2, dev_sinogram_cmplx, dev_sinogram_float, CUFFT_INVERSE);
     cufftDestroy(plan);
     cufftDestroy(plan2);
 
