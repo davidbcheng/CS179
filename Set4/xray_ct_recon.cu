@@ -78,7 +78,7 @@ cudaBackProjectionKernel(float *sinogram, float *result, int size_result,
 
     int angle;
 
-    for (int angle = 0; angle < nAngles; ++angle)
+    for (angle = 0; angle < nAngles; ++angle)
     {
         float theta = ((float) angle / nAngles) * PI;
         float d;
@@ -178,7 +178,7 @@ int main(int argc, char** argv){
     }
 
     fclose(dataFile);
-u
+
 
     /*********** Assignment starts here *********/
 
@@ -240,7 +240,6 @@ u
 
     cudaFree(dev_sinogram_float);
     cudaFree(output_dev);
-    cudaFree(dev)
 
     /* Export image data. */
 
