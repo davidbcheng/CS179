@@ -49,64 +49,105 @@ void checkCUDAKernelError()
     }
 
 }
-
 __global__
 void
-cudaHighPassKernel(cufftComplex *raw_data, int length) {
+cudaHighPassKernel(cufftComplex *raw_data, const int sinogram_width, const int nAngles) {
     // Determine the index of the output data we are writing to by
     // the block id and the thread id
-    unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+    const int length = nAngles * sinogram_width;
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int center = sinogram_width / 2.0;
+
 
     while(index < length)
-    {
-        raw_data[index].x = fabsf(1 - (2 * index) / length);
-        raw_data[index].y = fabsf(1 - (2 * index) / length);
-
-        index += blockDim.x + gridDim.x;
+    {   
+	int relative_dist = abs((float) (index % sinogram_width - center));
+	float scalingFactor = (1.0 - (float) relative_dist / center);
+        raw_data[index].x *= scalingFactor;
+        raw_data[index].y *= scalingFactor;
+	//printf("%f, %d\n", scalingFactor, abs(relative_index - center));
+        index += blockDim.x * gridDim.x;
     }
 }
 
+/*
+__global__ void cudaHighPassKernel(cufftComplex *dev_sinogram_cmplx,
+    const int sinogram_width, const int nAngles) {
+
+    const int totalSize = nAngles * sinogram_width;
+
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int sinogram_center =  (sinogram_width / 2.0);
+
+    while(i < totalSize) {
+        int dist_from_center = abs((float)(i % sinogram_width - sinogram_center));
+        float scalingFactor = (1.0 - (float) dist_from_center / sinogram_center); 
+        dev_sinogram_cmplx[i].x *= scalingFactor;
+        dev_sinogram_cmplx[i].y *= scalingFactor;
+        i += blockDim.x * gridDim.x;
+    }
+}
+*/
 __global__
 void
 cudaBackProjectionKernel(float *sinogram, float *result, int size_result,
     int nAngles, int sinogram_width, int side_length) {
 
-    int x_p = threadIdx.x + blockDim.x * blockIdx.x;
-    int y_p = threadIdx.y + blockDim.y * blockIdx.y;
-    float x_0 = (float) x_p - (side_length / 2);
-    float y_0 = (side_length / 2) - (float) y_p;
+    int index = threadIdx.x + blockDim.x * blockIdx.x;
 
-    int angle;
+    while (index < side_length * side_length) {
+	int x_p = index % side_length;
+	int y_p = index / side_length;
+	
+    	float x_0 = (float) x_p - (side_length / 2);
+    	float y_0 = (side_length / 2) - (float) y_p;
 
-    for (angle = 0; angle < nAngles; ++angle)
-    {
-        float theta = ((float) angle / nAngles) * PI;
-        float d;
-        if (theta == 0)
-        {
-            d = x_0;
-        }
-        else if (theta == PI / 2)
-        {
-            d = y_0;
-        }
-        else
-        {
-            float m = -1 * cosf(theta) / sinf(theta);
-            float q = -1 / m;
-
-            float x_1 = (y_0 - m * x_0) / (q - m);
-            float y_1 = q * x_1;
-            d = sqrtf(x_1 * x_1 + y_1 * y_1);
-
-            if (x_1 < 0 || (q < 0 && x_1 > 0))
+   	int angle;
+	float sum = 0;
+    	for (angle = 0; angle < nAngles; ++angle)
+   	{
+            float theta = ((float) angle / nAngles) * PI;
+            int d;
+            if (theta == 0)
             {
-                d = -1 * d;
+                d = x_0;
             }
-        }
+            else if (theta == PI / 2)
+            {
+                d = y_0;
+            }
+            else
+            {
+                float m = -1 * cosf(theta) / sinf(theta);
+                float q = -1 / m;
 
-        result[x_p + side_length * y_p] += sinogram[(int) d + nAngles * angle];
+                float x_1 = (y_0 - m * x_0) / (q - m);
+                float y_1 = q * x_1;
+                d = floorf(sqrtf(x_1 * x_1 + y_1 * y_1));
+
+                if (x_1 < 0 || (q < 0 && x_1 > 0))
+                {
+                    d = -1 * d;
+                }
+            }
+	    sum += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
+            //result[index] += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
+        }
+	result[index] = sum;
+	sum = 0;
+	index += blockDim.x * gridDim.x;
     }
+}
+
+__global__
+void cudaConvertToReal(cufftComplex * c_nums, float * r_nums, int length) {
+    unsigned int index = threadIdx.x + blockDim.x * blockIdx.x;
+
+    while(index < length)
+    {
+        r_nums[index] = c_nums[index].x;
+	index += blockDim.x * gridDim.x;
+    }    
 }
 
 int main(int argc, char** argv){
@@ -186,10 +227,9 @@ int main(int argc, char** argv){
     over to dev_sinogram_cmplx. */
 
     cudaMalloc((void **) &dev_sinogram_cmplx, sinogram_width*nAngles*sizeof(cufftComplex));
-    cudaMalloc((void **) &output_dev, size_result);
     cudaMalloc((void **) &dev_sinogram_float, sinogram_width*nAngles*sizeof(float));
 
-    cudaMemcpy(dev_sinogram_float, sinogram_host,
+    cudaMemcpy(dev_sinogram_cmplx, sinogram_host,
         sizeof(cufftComplex) * sinogram_width * nAngles, cudaMemcpyHostToDevice);
 
 
@@ -204,28 +244,33 @@ int main(int argc, char** argv){
         Note: If you want to deal with real-to-complex and complex-to-real
         transforms in cuFFT, you'll have to slightly change our code above.
     */
-
     cufftHandle plan;
-    cufftHandle plan2;
     int batch = nAngles;
-    cufftPlan1d(&plan, sinogram_width*nAngles*sizeof(cufftComplex),
-        CUFFT_C2C, batch);
-    cufftPlan1d(&plan2, sinogram_width*nAngles*sizeof(cufftComplex),
-        CUFFT_C2R, batch);
+    cufftPlan1d(&plan, sinogram_width, CUFFT_C2C, batch);
 
+    printf("Loaded Data\n");
 
     cufftExecC2C(plan, dev_sinogram_cmplx, dev_sinogram_cmplx, CUFFT_FORWARD);
 
-    cudaHighPassKernel<<<nBlocks, threadsPerBlock>>> (dev_sinogram_cmplx,
-        sinogram_width*nAngles*sizeof(cufftComplex));
+    printf("Completed FFT_forward\n");
 
-    cufftExecC2R(plan2, dev_sinogram_cmplx, dev_sinogram_float);
+    cudaHighPassKernel<<<nBlocks, threadsPerBlock>>> (dev_sinogram_cmplx,
+        sinogram_width, nAngles);
+
+    printf("Completed HighPass FIlter\n");
+
+    cufftExecC2C(plan, dev_sinogram_cmplx, dev_sinogram_cmplx, CUFFT_INVERSE);
+
+    printf("Completed FFT INVERSe\n");
+
+    cudaConvertToReal<<<nBlocks, threadsPerBlock>>> (dev_sinogram_cmplx, dev_sinogram_float,
+	sinogram_width * nAngles);
+
+    printf("Converted to Real\n");
+
     cufftDestroy(plan);
-    cufftDestroy(plan2);
 
     cudaFree(dev_sinogram_cmplx);
-
-
     /* TODO 2: Implement backprojection.
         - Allocate memory for the output image.
         - Create your own kernel to accelerate backprojection.
@@ -234,10 +279,13 @@ int main(int argc, char** argv){
     */
 
     cudaMalloc((void **) &output_dev, size_result);
+    cudaMemset(output_dev, 0, size_result);
+
     cudaBackProjectionKernel <<<nBlocks, threadsPerBlock>>> (dev_sinogram_float,
      output_dev, size_result, nAngles, sinogram_width, height);
-    cudaMemcpy(output_host, output_dev, size_result, cudaMemcpyDeviceToHost);
 
+    cudaMemcpy(output_host, output_dev, size_result, cudaMemcpyDeviceToHost);
+    printf("Completed Back Projection\n");
     cudaFree(dev_sinogram_float);
     cudaFree(output_dev);
 
