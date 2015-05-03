@@ -15,6 +15,7 @@ Adapted by Kevin Yuh (2015)
 #include <cufft.h>
 
 #define PI 3.14159265358979
+#define EPSILON 0.00001
 
 
 /* Check errors on CUDA runtime functions */
@@ -70,24 +71,6 @@ cudaHighPassKernel(cufftComplex *raw_data, const int sinogram_width, const int n
     }
 }
 
-/*
-__global__ void cudaHighPassKernel(cufftComplex *dev_sinogram_cmplx,
-    const int sinogram_width, const int nAngles) {
-
-    const int totalSize = nAngles * sinogram_width;
-
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int sinogram_center =  (sinogram_width / 2.0);
-
-    while(i < totalSize) {
-        int dist_from_center = abs((float)(i % sinogram_width - sinogram_center));
-        float scalingFactor = (1.0 - (float) dist_from_center / sinogram_center); 
-        dev_sinogram_cmplx[i].x *= scalingFactor;
-        dev_sinogram_cmplx[i].y *= scalingFactor;
-        i += blockDim.x * gridDim.x;
-    }
-}
-*/
 __global__
 void
 cudaBackProjectionKernel(float *sinogram, float *result, int size_result,
@@ -103,16 +86,15 @@ cudaBackProjectionKernel(float *sinogram, float *result, int size_result,
     	float y_0 = (side_length / 2) - (float) y_p;
 
    	int angle;
-	float sum = 0;
     	for (angle = 0; angle < nAngles; ++angle)
    	{
             float theta = ((float) angle / nAngles) * PI;
             int d;
-            if (theta == 0)
+            if (fabsf(theta) < EPSILON)
             {
                 d = x_0;
             }
-            else if (theta == PI / 2)
+            else if (fabsf(theta - PI / 2) < EPSILON)
             {
                 d = y_0;
             }
@@ -125,16 +107,13 @@ cudaBackProjectionKernel(float *sinogram, float *result, int size_result,
                 float y_1 = q * x_1;
                 d = floorf(sqrtf(x_1 * x_1 + y_1 * y_1));
 
-                if (x_1 < 0 || (q < 0 && x_1 > 0))
+                if ((q > 0 && x_1 < 0) || (q < 0 && x_1 > 0))
                 {
                     d = -1 * d;
                 }
             }
-	    sum += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
-            //result[index] += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
+            result[index] += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
         }
-	result[index] = sum;
-	sum = 0;
 	index += blockDim.x * gridDim.x;
     }
 }
