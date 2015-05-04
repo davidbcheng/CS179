@@ -287,7 +287,6 @@ int main(int argc, char** argv){
     cufftDestroy(plan);
     cudaFree(dev_sinogram_cmplx);
 
-    float * hmatrix;
     float * dmatrix;
 
     cudaArray* carray;
