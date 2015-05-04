@@ -146,7 +146,6 @@ cudaBackProjectionKernel(float *sinogram, float *result,
             }
 
             // Increment the pixel by the data through that distance and angle
-            // result[index] += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
             result[index] += tex2D(texreference, d + sinogram_width / 2, angle);
         }
 
@@ -217,7 +216,7 @@ int main(int argc, char** argv){
 
     /*********** Set up IO, Read in data ************/
 
-    sinogram_host = (cufftComplex *)malloc(  sinogram_width*nAngles*sizeof(cufftComplex) );
+    sinogram_host = (cufftComplex *)malloc(sinogram_width*nAngles*sizeof(cufftComplex) );
 
     FILE *dataFile = fopen(argv[1],"r");
     if (dataFile == NULL){
@@ -287,19 +286,27 @@ int main(int argc, char** argv){
     cufftDestroy(plan);
     cudaFree(dev_sinogram_cmplx);
 
+    // Create cudaArrays and channel for texture mem
     cudaArray* carray;
     cudaChannelFormatDesc channel;
 
+    // Create channel to describe data type
     channel = cudaCreateChannelDesc<float>();
 
-    cudaMallocArray(&carray, &channel, width, height);
+    // Malloc necessary array memory for cuda array
+    cudaMallocArray(&carray, &channel, sinogram_width, nAngles);
 
-    cudaMemcpyToArray(carray, 0, 0, dev_sinogram_float, sizeof(float)*sinogram_width * nAngles, cudaMemcpyHostToDevice);
+    // Copy matrix from host to device
+    cudaMemcpyToArray(carray, 0, 0, dev_sinogram_float,
+     sizeof(float)*sinogram_width * nAngles, cudaMemcpyHostToDevice);
 
+    // Use texture filter mode property 
+    // Use texture address mode porperty
     texreference.filterMode = cudaFilterModePoint;
     texreference.addressMode[0] = cudaAddressModeWrap;
     texreference.addressMode[1] = cudaAddressModeClamp;
 
+    // Bind TExture array
     cudaBindTextureToArray(texreference, carray);
 
     // Allocate space for the output image and set the output to 0
@@ -310,6 +317,7 @@ int main(int argc, char** argv){
     cudaBackProjectionKernel <<<nBlocks, threadsPerBlock>>> (dev_sinogram_float,
      output_dev, nAngles, sinogram_width, width, height);
 
+    // UnBind texture reference with cuda array
     cudaUnbindTexture(texreference);
 
     // After computing the output image, we move it back to CPU memory
