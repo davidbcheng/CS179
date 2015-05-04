@@ -293,19 +293,13 @@ int main(int argc, char** argv){
     cudaArray* carray;
     cudaChannelFormatDesc channel;
 
-    hmatrix = (float *) malloc(sizeof(float) * height * width);
     cudaMalloc((void **) &dmatrix, sizeof(float) * height * width);
-
-    for (int i = 0; i < height * width; ++i)
-    {
-        hmatrix[i] = (float) rand() / (float) (RAND_MAX - 1);
-    }
 
     channel = cudaCreateChannelDesc<float>();
 
     cudaMallocArray(&carray, &channel, width, height);
 
-    cudaMemcpyToArray(carray, 0, 0, hmatrix, size_result, cudaMemcpyHostToDevice);
+    cudaMemcpyToArray(carray, 0, 0, dev_sinogram_float, sinogram_width * nAngles, cudaMemcpyHostToDevice);
 
     texreference.filterMode = cudaFilterModePoint;
     texreference.addressMode[0] = cudaAddressModeWrap;
@@ -323,15 +317,12 @@ int main(int argc, char** argv){
 
     cudaUnbindTexture(texreference);
 
-    cudaMemcpy(hmatrix, dmatrix, size_result, cudaMemcpyDeviceToHost);
-
     // After computing the output image, we move it back to CPU memory
     cudaMemcpy(output_host, output_dev, size_result, cudaMemcpyDeviceToHost);
 
 
     printf("Completed Back Projection\n");
 
-    free(hmatrix);
     cudaFree(dmatrix);
     cudaFreeArray(carray);
     cudaFree(dev_sinogram_float);
