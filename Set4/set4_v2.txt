@@ -55,9 +55,20 @@ If not, why not?
 
 (Be reasonably thorough; a few sentences is sufficient.)
 
+
 It seems like you have to write to global memory every time to F, X and
 C. Whats the point of copying arrays to shared memory, writing it to shared
 memory and then copying back to global memory. Slowed performance
+
+If we wanted to avoid read-penalties of global we could use shared memory to
+store the data we need. However, this will not increase performance. We would
+have to load all the data into shared memory from global memory, which will 
+incur time costs. Since we have to make sure that the threads dont access
+shared memory that hasn't been copied from global memory, we need to syncthreads
+which will incur time costs. We are not accessing elements in shared memory 
+more than once in each iteration and thus the effectiveness of using shared 
+memory goes down. Afterwards, we need to sync threads again and then we write
+back to global memory, which both incur more costs. This is not worth it.
 
 1.2 	(10 pts)
 ---------------------
@@ -77,8 +88,14 @@ What is a good, parallelizable way to check whether "F is not all false" at each
 
 (Hint: If we store "false" as 0, and "true" as 1 within the frontier array, what happens to the array's sum?)
 
-Store 0 if false and 1 if true in frontier array. Use reduction to sum
-up array and if the sum is 0 then it is all true.
+We will store 0 if false and 1 if true in the frontier array. We can use the 
+reduction that was detailed in Lecture 7 about parallelizing the computation
+of a sum of an array. We can copy the frontier array into shared memory and
+perform the reduction, which will give us the the sum of all the elements in 
+frontier in the first index of shared memory. We can copy this into an integer
+variable on the CPU and in our while loop we can check if that integer value
+is greater than 0. If it is greater than 0 then we know that F is not all
+false and we can enter the loop. 
 
 1.3 	(10 pts)
 ---------------------
@@ -88,9 +105,28 @@ Can you think of another way to check whether "F is not all false"? What are the
 (Hint: In the GPU pseudocode, what part of the code has to be executed to set an element of F to true? Can you add some code there?)
 
 
-something like Whenever we have to set an element. Set global memory vairable to true because one of elements is now true
-
-
+Another way to check whether F is not all false is in our GPU kernel code. Keep 
+a variable held in shared memory. Every time we are checking the neighbors of 
+current node and setting the non visted ones to true in the frontier array, we 
+set this variable to 1. At the end of the GPU kernel code, we check if the 
+variable is 1 and if it is we set a global variable to 1. We can use this
+global variable in our CPU copy through memcpy. Note that 
+this code is thread safe because we are setting the variable to 1. 
+The disadvantages of the code include that we have to include memcopys between
+GPU and CPU memory, which will incur a cost penalty. 
+The advantages of this code is that we are doing at most n work for checking whether
+F is not all false in the whole code. This is because we are at most setting
+each element in F to true once and therefore we are only setting the local
+variable to 1 at most once per element. This normally performs better than the 
+solution detailed in 1.2 because in 1.2, we are doing n work at each iteration
+of the while loop, since we are touching each element in F by performing the
+sum. This is where the graph density comes in. If the graph is all connected
+we would only have one iteration of the while loop, which would make 1.2 have
+similar performance to this solution. If the graph is more sparse
+with something like a linked list where each node only has one neighbor, the 
+solution of 1.3 will perform much better than 1.2 because 1.2 will have to
+compute the sum for each iteration (n nodes , n iterations), which is much
+more costly than the total cost of n nodes. 
 
 
 Question 2: Algorithm compare/contrast: PET Reconstruction (10 pts)
@@ -131,6 +167,18 @@ How do you expect our GPU-accelerated PET reconstruction performance to compare 
 
 (Hint 2: In X-ray CT reconstruction, we were able to use texture memory to cache sinogram reads. Does that change here?)
 
+I expect the GPU-accelerated PET reconstruction performance to be much worse
+than the X-ray CT scan. For the PET code, we parallelize over the entries on
+the list and we increment the pixels that are relevant to the entry in the list.
+We are parallelizing the additions into pixels and there could potentially be
+multiple threads accessing the same pixels. Since addition is atomically unsafe
+we have to do an atomic add to each pixel and these atomic adds to the pixels
+block each other and will prove costly. Additionally, we could use texture 
+memory in the CT to cache the sinogram reads. The difference is that we are 
+parallelizing over the locations and writing to the pixels. We cannot use
+texture memory when writing to the pixel data because texture memory is 
+read only. Also it doesn't matter when we talk about the location data because
+it is stride one and is coalesced anyway. 
 
 
 
