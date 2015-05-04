@@ -294,7 +294,7 @@ int main(int argc, char** argv){
 
     cudaMallocArray(&carray, &channel, width, height);
 
-    cudaMemcpyToArray(carray, 0, 0, dev_sinogram_float, sinogram_width * nAngles, cudaMemcpyHostToDevice);
+    cudaMemcpyToArray(carray, 0, 0, dev_sinogram_float, sizeof(float)*sinogram_width * nAngles, cudaMemcpyHostToDevice);
 
     texreference.filterMode = cudaFilterModePoint;
     texreference.addressMode[0] = cudaAddressModeWrap;
