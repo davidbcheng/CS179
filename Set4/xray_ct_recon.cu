@@ -287,12 +287,8 @@ int main(int argc, char** argv){
     cufftDestroy(plan);
     cudaFree(dev_sinogram_cmplx);
 
-    float * dmatrix;
-
     cudaArray* carray;
     cudaChannelFormatDesc channel;
-
-    cudaMalloc((void **) &dmatrix, sizeof(float) * height * width);
 
     channel = cudaCreateChannelDesc<float>();
 
@@ -321,8 +317,6 @@ int main(int argc, char** argv){
 
 
     printf("Completed Back Projection\n");
-
-    cudaFree(dmatrix);
     cudaFreeArray(carray);
     cudaFree(dev_sinogram_float);
     cudaFree(output_dev);
