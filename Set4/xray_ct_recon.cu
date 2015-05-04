@@ -147,7 +147,7 @@ cudaBackProjectionKernel(float *sinogram, float *result,
 
             // Increment the pixel by the data through that distance and angle
             // result[index] += sinogram[d + sinogram_width / 2 + sinogram_width * angle];
-            result[index] += tex2d(texreference, d + sinogram_width / 2, angle);
+            result[index] += tex2D(texreference, d + sinogram_width / 2, angle);
         }
 
 	   index += blockDim.x * gridDim.x;
@@ -293,17 +293,17 @@ int main(int argc, char** argv){
     cudaArray* carray;
     cudaChannelFormatDesc channel;
 
-    hmatrix = (float *) malloc(sizeof(float) * length * width);
-    cudaMalloc((void **) &dmatrix, sizeof(float) * length * width);
+    hmatrix = (float *) malloc(sizeof(float) * height * width);
+    cudaMalloc((void **) &dmatrix, sizeof(float) * height * width);
 
-    for (int i = 0; i < length * width; ++i)
+    for (int i = 0; i < height * width; ++i)
     {
         hmatrix[i] = (float) rand() / (float) (RAND_MAX - 1);
     }
 
     channel = cudaCreateChannelDesc<float>();
 
-    cudaMallocArray(&carray, &channel, width, length);
+    cudaMallocArray(&carray, &channel, width, height);
 
     cudaMemcpyToArray(carray, 0, 0, hmatrix, size_result, cudaMemcpyHostToDevice);
 
