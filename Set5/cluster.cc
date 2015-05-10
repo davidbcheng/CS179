@@ -116,19 +116,23 @@ void cluster(int k, int batch_size) {
   gpuErrChk(cudaMemset(d_cluster_counts, 0, k * sizeof(int)));
   
   // TODO: allocate copy buffers and streams
-  float *
+  float * data = new float[batch_size * REVIEW_DIM];
+  int * output = new int[batch_size];
+
+  float * data1 = new float[batch_size * REVIEW_DIM];
+  int * output1 = new int[batch_size];
 
   cudaStream_t s[2];
   cudaStreamCreate(&s[0]); cudaStreamCreate(&s[1]);
   
   float * d_data;
   int * d_output;
-  gpuErrChk(cudaMalloc(&d_data, k * REVIEW_DIM * sizeof(float)));
+  gpuErrChk(cudaMalloc(&d_data, batch_size * REVIEW_DIM * sizeof(float)));
   gpuErrChk(cudaMalloc(&d_output, batch_size * sizeof(int)));
 
   float * d_data1;
   int * d_output1;
-  gpuErrChk(cudaMalloc(&d_data1, k * REVIEW_DIM * sizeof(float)));
+  gpuErrChk(cudaMalloc(&d_data1, batch_size * REVIEW_DIM * sizeof(float)));
   gpuErrChk(cudaMalloc(&d_output1, batch_size * sizeof(int)));
 
   // main loop to process input lines (each line corresponds to a review)
@@ -136,11 +140,49 @@ void cluster(int k, int batch_size) {
   int streamFlag = 0;
   for (string review_str; getline(cin, review_str); review_idx++) {
     // TODO: readLSAReview into appropriate storage
-    readLSAReview(review_str, d_data + REVIEW_DIM * review_idx);
-    if(review_idx + 1 == batch_size)
+    if (streamFlag == 0)
     {
-       cudaMemcpyAsync( 
+      readLSAReview(review_str, data + REVIEW_DIM * review_idx);
+      if(review_idx + 1 == batch_size)
+      {
+        cudaMemcpyAsync(d_data, data, REVIEW_DIM * batch_size,
+          cudaMemcpyHostToDevice, s[0]);
+        cudaCluster(d_clusters, d_cluster_counts, k, d_data,
+          d_output, batch_size, s[0]);
+        cudaMemcpyAsync(output, d_output, batch_size,
+          cudaMemcpyDeviceToHost, s[0]);
+        printerArg * args = new printerArg;
+        args->review_idx_start = 0;
+        args->batch_size = batch_size;
+        args->cluster_assignments = output;
+        cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
+        delete args;
+        review_idx = 0;
+        streamFlag = 1;
+      }
     }
+    else
+    {
+      readLSAReview(review_str, data1 + REVIEW_DIM * review_idx);
+      if(review_idx + 1 == batch_size)
+      {
+        cudaMemcpyAsync(d_data1, data1, REVIEW_DIM * batch_size,
+          cudaMemcpyHostToDevice, s[1]);
+        cudaCluster(d_clusters, d_cluster_counts, k, d_data1,
+          d_output1, batch_size, s[1]);
+        cudaMemcpyAsync(output1, d_output1, batch_size,
+          cudaMemcpyDeviceToHost, s[1]);
+        printerArg * args = new printerArg;
+        args->review_idx_start = 1;
+        args->batch_size = batch_size;
+        args->cluster_assignments = output;
+        cudaStreamAddCallback(s[1], printerCallback, (void*) args, 0);
+        delete args;
+        review_idx = 0;
+        streamFlag = 0;
+      }
+    }
+
 
     // TODO: if you have filled up a batch, copy H->D, kernel, copy D->H,
     //       and set callback to printerCallback. Will need to allocate
@@ -174,6 +216,18 @@ void cluster(int k, int batch_size) {
   delete[] clusters;
 
   // TODO: finish freeing memory, destroy streams
+  delete[] data;
+  delete[] data1;
+  delete[] output;
+  delete[] output1;
+
+  gpuErrChk(cudaFree(d_data));
+  gpuErrChk(cudaFree(d_data1));
+  gpuErrChk(cudaFree(d_output));
+  gpuErrChk(cudaFree(d_output1));
+
+  cudaStreamDestroy(s[0]);
+  cudaStreamDestroy(s[1]);
 }
 
 int main() {
