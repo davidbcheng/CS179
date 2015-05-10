@@ -60,6 +60,33 @@ __global__
 void sloppyClusterKernel(float *clusters, int *cluster_counts, int k, 
                           float *data, int *output, int batch_size) {
   // TODO: write me
+  unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+  while (index < batch_size)
+  {
+    float min_dist = 99999;
+    int clusterIndex = -1;
+    float *currRev = data + index * REVIEW_DIM;
+    for(int i = 0; i < k; i++)
+    {
+      float * currCenter = clusters + i * REVIEW_DIM;
+      float currDist = squared_distance(currRev, currCenter, 1, REVIEW_DIM);
+      if(currDist < min_dist)
+      {
+        min_dist = currDist;
+        clusterIndex = i;
+      }
+    } 
+    output[index] = clusterIndex; 
+    
+    for(int i = 0; i < REVIEW_DIM; i++)
+    {
+      float * centerDim = clusters + i + clusterIndex * REVIEW_DIM;
+      float * update = data + i + clusterIndex * REVIEW_DIM;
+      atomicUpdateAverage(centerDim, cluster_counts[clusterIndex], *update);
+    }
+    cluster_counts[clusterIndex] += 1;
+    index += blockDim.x * gridDim.x;
+  } 
 }
 
 

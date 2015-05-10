@@ -116,11 +116,31 @@ void cluster(int k, int batch_size) {
   gpuErrChk(cudaMemset(d_cluster_counts, 0, k * sizeof(int)));
   
   // TODO: allocate copy buffers and streams
+  float *
+
+  cudaStream_t s[2];
+  cudaStreamCreate(&s[0]); cudaStreamCreate(&s[1]);
+  
+  float * d_data;
+  int * d_output;
+  gpuErrChk(cudaMalloc(&d_data, k * REVIEW_DIM * sizeof(float)));
+  gpuErrChk(cudaMalloc(&d_output, batch_size * sizeof(int)));
+
+  float * d_data1;
+  int * d_output1;
+  gpuErrChk(cudaMalloc(&d_data1, k * REVIEW_DIM * sizeof(float)));
+  gpuErrChk(cudaMalloc(&d_output1, batch_size * sizeof(int)));
 
   // main loop to process input lines (each line corresponds to a review)
   int review_idx = 0;
+  int streamFlag = 0;
   for (string review_str; getline(cin, review_str); review_idx++) {
     // TODO: readLSAReview into appropriate storage
+    readLSAReview(review_str, d_data + REVIEW_DIM * review_idx);
+    if(review_idx + 1 == batch_size)
+    {
+       cudaMemcpyAsync( 
+    }
 
     // TODO: if you have filled up a batch, copy H->D, kernel, copy D->H,
     //       and set callback to printerCallback. Will need to allocate
