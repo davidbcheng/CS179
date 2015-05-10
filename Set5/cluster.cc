@@ -162,7 +162,7 @@ void cluster(int k, int batch_size) {
         cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
         printf("INSIDE2\n");
         review_idx = 0;
-        streamFlag = 1;
+        streamFlag = 0;
       }
     }
     else
