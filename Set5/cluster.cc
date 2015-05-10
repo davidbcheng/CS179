@@ -135,6 +135,8 @@ void cluster(int k, int batch_size) {
   gpuErrChk(cudaMalloc(&d_data1, batch_size * REVIEW_DIM * sizeof(float)));
   gpuErrChk(cudaMalloc(&d_output1, batch_size * sizeof(int)));
 
+  printerArg * args = new printerArg;
+
   printf("DUDE1\n");
 
   // main loop to process input lines (each line corresponds to a review)
@@ -153,12 +155,12 @@ void cluster(int k, int batch_size) {
           d_output, batch_size, s[0]);
         cudaMemcpyAsync(output, d_output, batch_size,
           cudaMemcpyDeviceToHost, s[0]);
-        printerArg * args = new printerArg;
+        
         args->review_idx_start = 0;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
         cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
-        delete args;
+        
         review_idx = 0;
         streamFlag = 1;
       }
@@ -174,12 +176,12 @@ void cluster(int k, int batch_size) {
           d_output1, batch_size, s[1]);
         cudaMemcpyAsync(output1, d_output1, batch_size,
           cudaMemcpyDeviceToHost, s[1]);
-        printerArg * args = new printerArg;
+
         args->review_idx_start = 1;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
+        
         cudaStreamAddCallback(s[1], printerCallback, (void*) args, 0);
-        delete args;
         review_idx = 0;
         streamFlag = 0;
       }
@@ -225,6 +227,8 @@ void cluster(int k, int batch_size) {
   delete[] data1;
   delete[] output;
   delete[] output1;
+
+  delete args;
 
   gpuErrChk(cudaFree(d_data));
   gpuErrChk(cudaFree(d_data1));
