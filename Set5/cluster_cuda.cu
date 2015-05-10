@@ -63,7 +63,7 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
   unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
   while (index < batch_size)
   {
-    float min_dist = 99999;
+    float min_dist = 9999999;
     int clusterIndex = -1;
     float *currRev = data + index * REVIEW_DIM;
     for(int i = 0; i < k; i++)
