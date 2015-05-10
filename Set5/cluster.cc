@@ -185,7 +185,7 @@ void cluster(int k, int batch_size) {
       }
     }
 
-    printf("DUDE2\n");
+    // printf("DUDE2\n");
     // TODO: if you have filled up a batch, copy H->D, kernel, copy D->H,
     //       and set callback to printerCallback. Will need to allocate
     //       printerArg struct. Do all of this in a stream.
