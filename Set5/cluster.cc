@@ -155,12 +155,12 @@ void cluster(int k, int batch_size) {
           d_output, batch_size, s[0]);
         cudaMemcpyAsync(output, d_output, batch_size,
           cudaMemcpyDeviceToHost, s[0]);
-        
+        printf("INSIDE1\n");
         args->review_idx_start = 0;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
         cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
-        
+        printf("INSIDE2\n");
         review_idx = 0;
         streamFlag = 1;
       }
@@ -180,7 +180,7 @@ void cluster(int k, int batch_size) {
         args->review_idx_start = 1;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
-        
+
         cudaStreamAddCallback(s[1], printerCallback, (void*) args, 0);
         review_idx = 0;
         streamFlag = 0;
