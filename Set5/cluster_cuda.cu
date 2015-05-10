@@ -84,7 +84,8 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
       float * update = data + i + clusterIndex * REVIEW_DIM;
       atomicUpdateAverage(centerDim, cluster_counts[clusterIndex], *update);
     }
-    cluster_counts[clusterIndex] += 1;
+
+    atomicAdd(cluster_counts + clusterIndex, 1);
     index += blockDim.x * gridDim.x;
   } 
 }
