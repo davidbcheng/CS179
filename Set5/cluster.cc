@@ -135,6 +135,8 @@ void cluster(int k, int batch_size) {
   gpuErrChk(cudaMalloc(&d_data1, batch_size * REVIEW_DIM * sizeof(float)));
   gpuErrChk(cudaMalloc(&d_output1, batch_size * sizeof(int)));
 
+  printf("DUDE1\n");
+
   // main loop to process input lines (each line corresponds to a review)
   int review_idx = 0;
   int streamFlag = 0;
@@ -155,7 +157,7 @@ void cluster(int k, int batch_size) {
         args->review_idx_start = 0;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
-        cudaStreamAddCallback(s[0], printerCallback, 0, (void*) args);
+        cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
         delete args;
         review_idx = 0;
         streamFlag = 1;
@@ -176,19 +178,20 @@ void cluster(int k, int batch_size) {
         args->review_idx_start = 1;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
-        cudaStreamAddCallback(s[1], printerCallback, 0, (void*) args);
+        cudaStreamAddCallback(s[1], printerCallback, (void*) args, 0);
         delete args;
         review_idx = 0;
         streamFlag = 0;
       }
     }
 
-
+    printf("DUDE2\n");
     // TODO: if you have filled up a batch, copy H->D, kernel, copy D->H,
     //       and set callback to printerCallback. Will need to allocate
     //       printerArg struct. Do all of this in a stream.
   }
 
+  printf("DUDE3\n");
   // wait for everything to end on GPU before final summary
   gpuErrChk(cudaDeviceSynchronize());
 
@@ -198,6 +201,8 @@ void cluster(int k, int batch_size) {
 		       cudaMemcpyDeviceToHost));
   gpuErrChk(cudaMemcpy(clusters, d_clusters, k * REVIEW_DIM * sizeof(int),
 		       cudaMemcpyDeviceToHost));
+
+  printf("DUDE4\n");
 
   // print cluster summaries
   for (int i=0; i < k; i++) {
