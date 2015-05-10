@@ -155,7 +155,7 @@ void cluster(int k, int batch_size) {
         args->review_idx_start = 0;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
-        cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
+        cudaStreamAddCallback(s[0], printerCallback, 0, (void*) args);
         delete args;
         review_idx = 0;
         streamFlag = 1;
@@ -176,7 +176,7 @@ void cluster(int k, int batch_size) {
         args->review_idx_start = 1;
         args->batch_size = batch_size;
         args->cluster_assignments = output;
-        cudaStreamAddCallback(s[1], printerCallback, (void*) args, 0);
+        cudaStreamAddCallback(s[1], printerCallback, 0, (void*) args);
         delete args;
         review_idx = 0;
         streamFlag = 0;
