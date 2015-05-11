@@ -165,7 +165,9 @@ void cluster(int k, int batch_size) {
       // Want to block until the stream finished all its operations
       cudaStreamSynchronize(s[0]);
 
-      // Want to copy data from first input buffer onto GPU, then 
+      // Want to copy data from first input buffer onto GPU, then run the 
+      // kernel to compute sloppy k means clustering on the first input data
+      // buffer, then copy computed output from gpu to cpu.
       cudaMemcpyAsync(d_data, data, REVIEW_DIM * batch_size * sizeof(float),
         cudaMemcpyHostToDevice, s[0]);
       cudaCluster(d_clusters, d_cluster_counts, k, d_data,
@@ -173,15 +175,23 @@ void cluster(int k, int batch_size) {
       cudaMemcpyAsync(output, d_output, batch_size * sizeof(int),
         cudaMemcpyDeviceToHost, s[0]);
 
+      // Check indicies of output using printerArgs
       printerArg * args = new printerArg;   
 
       args->review_idx_start = review_idx - batch_size * 2 + 1;
       args->batch_size = batch_size;
       args->cluster_assignments = output;
 
+      // Use cudaStreamAddCallBack which calls the printerCallback function
+      // which is called on host after stream is done
       cudaStreamAddCallback(s[0], printerCallback, (void*) args, 0);
 
+      // Want to block until stream finished all its operations
       cudaStreamSynchronize(s[1]);
+
+      // Want to copy data from first input buffer onto GPU, then run the 
+      // kernel to compute sloppy k means clustering on the first input data
+      // buffer, then copy computed output from gpu to cpu.      
       cudaMemcpyAsync(d_data1, data1, REVIEW_DIM * batch_size * sizeof(float),
         cudaMemcpyHostToDevice, s[1]);
       cudaCluster(d_clusters, d_cluster_counts, k, d_data1,
@@ -189,18 +199,17 @@ void cluster(int k, int batch_size) {
       cudaMemcpyAsync(output1, d_output1, batch_size * sizeof(int),
         cudaMemcpyDeviceToHost, s[1]);
 
+      // Check indicies of output using printerArgs
       printerArg * args1 = new printerArg;
 
       args1->review_idx_start = review_idx - batch_size + 1;
       args1->batch_size = batch_size;
       args1->cluster_assignments = output1;
 
+      // Use cudaStreamAddCallBack which calls the printerCallback function
+      // which is called on host after stream is done
       cudaStreamAddCallback(s[1], printerCallback, (void*) args1, 0);
     }
-
-    // TODO: if you have filled up a batch, copy H->D, kernel, copy D->H,
-    //       and set callback to printerCallback. Will need to allocate
-    //       printerArg struct. Do all of this in a stream.
   }
 
   // wait for everything to end on GPU before final summary
@@ -230,7 +239,7 @@ void cluster(int k, int batch_size) {
   delete[] cluster_counts;
   delete[] clusters;
 
-  // TODO: finish freeing memory, destroy streams
+  // Free Input and Output streams on host and on device
   delete[] data;
   delete[] data1;
   delete[] output;
@@ -241,12 +250,13 @@ void cluster(int k, int batch_size) {
   gpuErrChk(cudaFree(d_output));
   gpuErrChk(cudaFree(d_output1));
 
+  // Destroy streams
   cudaStreamDestroy(s[0]);
   cudaStreamDestroy(s[1]);
 }
 
 int main() {
   // cluster(5, 32);
-  cluster(25, 2048);
+  cluster(50, 2048);
   return 0;
 }

@@ -60,14 +60,22 @@ float squared_distance(float *a, float *b, int stride, int size) {
 __global__
 void sloppyClusterKernel(float *clusters, int *cluster_counts, int k, 
                           float *data, int *output, int batch_size) {
-  // TODO: write me
+  // Compute which index we are accessing in our output depending on our 
+  // thread index
   unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
-  //printf("reached sloppy kernel\n");
+
+  // Until we reach end of the data size
   while (index < batch_size)
   {
+    // Find minimum distance, so set min distance to max first
     float min_dist = 9999999;
     int clusterIndex = -1;
+
+    // Find the current review data
     float *currRev = data + index * REVIEW_DIM;
+
+    // For all the center points, find the distance and update the min distance
+    // and the min cluster center index
     for(int i = 0; i < k; i++)
     {
       float * currCenter = clusters + i * REVIEW_DIM;
@@ -78,16 +86,22 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
         clusterIndex = i;
       }
     } 
+
+    // Set the review to the minimum distance cluster. 
     output[index] = clusterIndex; 
-    //printf("Index: %d, ClusterInd: %d\n", index, clusterIndex);
     
+    // Update all the dimensions for the center with the updated point
     for(int i = 0; i < REVIEW_DIM; i++)
     {
       float * centerDim = clusters + i + clusterIndex * REVIEW_DIM;
       float * update = data + i + clusterIndex * REVIEW_DIM;
       atomicUpdateAverage(centerDim, cluster_counts[clusterIndex], *update);
     }
+
+    // Add 1 to the number of points that the cluster has
     atomicAdd(cluster_counts + clusterIndex, 1);
+
+    // Handle arbitrary amount of threads
     index += blockDim.x * gridDim.x;
   } 
 }
