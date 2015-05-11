@@ -82,7 +82,6 @@ struct printerArg {
 };
 
 // Prints out which cluster each review in a batch was assigned to.
-// TODO: Call with cudaStreamAddCallback (after completing D->H memcpy)
 void printerCallback(cudaStream_t stream, cudaError_t status, void *userData) {
   printerArg *arg = static_cast<printerArg *>(userData);
 
@@ -115,33 +114,42 @@ void cluster(int k, int batch_size) {
   // initialize cluster counts to 0
   gpuErrChk(cudaMemset(d_cluster_counts, 0, k * sizeof(int)));
   
-  // TODO: allocate copy buffers and streams
+  // Allocate space and array for the two input buffers for host and device
+  // Each one is of size batch_size * REVIEW_DIM because we want batch_size
+  // number of review for each input
   float * data = new float[batch_size * REVIEW_DIM];
-  int * output = new int[batch_size];
-
   float * data1 = new float[batch_size * REVIEW_DIM];
+
+  float * d_data;
+  float * d_data1;
+
+  gpuErrChk(cudaMalloc(&d_data, batch_size * REVIEW_DIM * sizeof(float)));
+  gpuErrChk(cudaMalloc(&d_data1, batch_size * REVIEW_DIM * sizeof(float)));
+
+  // Allocate space for two output buffers for host and device each
+  // output is a batch_size array that contains the index of the cluster to which
+  // each review is the closest to.
+  int * output = new int[batch_size];
   int * output1 = new int[batch_size];
 
-  cudaStream_t s[2];
-  cudaStreamCreate(&s[0]); cudaStreamCreate(&s[1]);
-  
-  float * d_data;
   int * d_output;
-  gpuErrChk(cudaMalloc(&d_data, batch_size * REVIEW_DIM * sizeof(float)));
-  gpuErrChk(cudaMalloc(&d_output, batch_size * sizeof(int)));
-
-  float * d_data1;
   int * d_output1;
-  gpuErrChk(cudaMalloc(&d_data1, batch_size * REVIEW_DIM * sizeof(float)));
+
+  gpuErrChk(cudaMalloc(&d_output, batch_size * sizeof(int)));
   gpuErrChk(cudaMalloc(&d_output1, batch_size * sizeof(int)));
 
-  printerArg * args = new printerArg;
-  printerArg * args1 = new printerArg;
+  // Create two streams to parallelize code further
+  cudaStream_t s[2];
+  cudaStreamCreate(&s[0]); cudaStreamCreate(&s[1]);
 
   // main loop to process input lines (each line corresponds to a review)
   int review_idx = 0;
   for (string review_str; getline(cin, review_str); review_idx++) {
-    // TODO: readLSAReview into appropriate storage
+    // Use readLSAReview to read review into our host input buffer
+    // If it is in the first half of batch_size * 2 then we write it to the
+    // first input buffer
+    // If it is in the second half of the batch_size * 2, then we write it
+    // to the second input buffer
     if(review_idx % (batch_size * 2) < batch_size)
     {
        readLSAReview(review_str, data + REVIEW_DIM * (review_idx % batch_size));
@@ -151,9 +159,13 @@ void cluster(int k, int batch_size) {
        readLSAReview(review_str, data1 + REVIEW_DIM * (review_idx % batch_size));
     }
 
+    // Once both input buffers have filled, with two batches
     if((review_idx + 1) % (batch_size * 2) == 0)
     {
+      // Want to block until the stream finished all its operations
       cudaStreamSynchronize(s[0]);
+
+      // Want to copy data from first input buffer onto GPU, then 
       cudaMemcpyAsync(d_data, data, REVIEW_DIM * batch_size * sizeof(float),
         cudaMemcpyHostToDevice, s[0]);
       cudaCluster(d_clusters, d_cluster_counts, k, d_data,
@@ -237,6 +249,7 @@ void cluster(int k, int batch_size) {
 }
 
 int main() {
-  cluster(5, 32);
+  // cluster(5, 32);
+  cluster(50, 2048)
   return 0;
 }
