@@ -236,9 +236,6 @@ void cluster(int k, int batch_size) {
   delete[] output;
   delete[] output1;
 
-  delete args;
-  delete args1;
-
   gpuErrChk(cudaFree(d_data));
   gpuErrChk(cudaFree(d_data1));
   gpuErrChk(cudaFree(d_output));
@@ -250,6 +247,6 @@ void cluster(int k, int batch_size) {
 
 int main() {
   // cluster(5, 32);
-  cluster(50, 2048)
+  cluster(25, 2048);
   return 0;
 }
