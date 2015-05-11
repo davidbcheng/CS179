@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cuda_runtime.h>
 #include "cluster_cuda.cuh"
+#include <stdio.h>
 
 // This assumes address stores the average of n elements atomically updates
 // address to store the average of n + 1 elements (the n elements as well as
@@ -61,6 +62,7 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
                           float *data, int *output, int batch_size) {
   // TODO: write me
   unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+  //printf("reached sloppy kernel\n");
   while (index < batch_size)
   {
     float min_dist = 9999999;
@@ -77,6 +79,7 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
       }
     } 
     output[index] = clusterIndex; 
+    //printf("Index: %d, ClusterInd: %d\n", index, clusterIndex);
     
     for(int i = 0; i < REVIEW_DIM; i++)
     {
@@ -84,7 +87,6 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
       float * update = data + i + clusterIndex * REVIEW_DIM;
       atomicUpdateAverage(centerDim, cluster_counts[clusterIndex], *update);
     }
-
     atomicAdd(cluster_counts + clusterIndex, 1);
     index += blockDim.x * gridDim.x;
   } 
