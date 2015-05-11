@@ -169,7 +169,7 @@ void cluster(int k, int batch_size) {
       // Want to block until the stream finished all its operations
       cudaStreamSynchronize(s[0]);
 
-      // START_TIMER();
+      START_TIMER();
 
       // Want to copy data from first input buffer onto GPU, then run the 
       // kernel to compute sloppy k means clustering on the first input data
@@ -177,26 +177,27 @@ void cluster(int k, int batch_size) {
       cudaMemcpyAsync(d_data, data, REVIEW_DIM * batch_size * sizeof(float),
         cudaMemcpyHostToDevice, s[0]);
 
-      // For timing
-      // cudaStreamSynchronize(s[0]);
-      // STOP_RECORD_TIMER(hostToDeviceTime);
-      // START_TIMER();
+      cudaStreamSynchronize(s[0]);
+
+      STOP_RECORD_TIMER(hostToDeviceTime);
+
+      START_TIMER();
 
       cudaCluster(d_clusters, d_cluster_counts, k, d_data,
         d_output, batch_size, s[0]);
 
       cudaStreamSynchronize(s[0]);
 
-      // For Timing
-      // STOP_RECORD_TIMER(kernelTime);
-      // START_TIMER();
+      STOP_RECORD_TIMER(kernelTime);
+
+      START_TIMER();
 
       cudaMemcpyAsync(output, d_output, batch_size * sizeof(int),
         cudaMemcpyDeviceToHost, s[0]);
 
-      // For Timing
-      // cudaStreamSynchronize(s[0]);
-      // STOP_RECORD_TIMER(deviceToHostTime);
+      cudaStreamSynchronize(s[0]);
+
+      STOP_RECORD_TIMER(deviceToHostTime);
 
       // Check indicies of output using printerArgs
       printerArg * args = new printerArg;   
@@ -281,10 +282,8 @@ void cluster(int k, int batch_size) {
 int main() {
   // cluster(5, 32);
   cluster(5, 32);
-
-  // For Timing
-  // printf("Host to Device: %f\n", hostToDeviceTime);
-  // printf("Kernel: %f\n", kernelTime);
-  // printf("Device To Host: %f\n", deviceToHostTime);
+  printf("Host to Device: %f\n", hostToDeviceTime);
+  printf("Kernel: %f\n", kernelTime);
+  printf("Device To Host: %f\n", deviceToHostTime);
   return 0;
 }
