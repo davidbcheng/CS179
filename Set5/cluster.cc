@@ -281,8 +281,10 @@ void cluster(int k, int batch_size) {
 int main() {
   // cluster(5, 32);
   cluster(5, 32);
-  printf("Host to Device: %f\n", hostToDeviceTime);
-  printf("Kernel: %f\n", kernelTime);
-  printf("Device To Host: %f\n", deviceToHostTime);
+
+  // For Timing
+  // printf("Host to Device: %f\n", hostToDeviceTime);
+  // printf("Kernel: %f\n", kernelTime);
+  // printf("Device To Host: %f\n", deviceToHostTime);
   return 0;
 }
