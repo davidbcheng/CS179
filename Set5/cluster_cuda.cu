@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 #include "cluster_cuda.cuh"
 #include <stdio.h>
+#include <float.h>
 
 // This assumes address stores the average of n elements atomically updates
 // address to store the average of n + 1 elements (the n elements as well as
@@ -68,7 +69,7 @@ void sloppyClusterKernel(float *clusters, int *cluster_counts, int k,
   while (index < batch_size)
   {
     // Find minimum distance, so set min distance to max first
-    float min_dist = 9999999;
+    float min_dist = FLT_MAX;
     int clusterIndex = -1;
 
     // Find the current review data
