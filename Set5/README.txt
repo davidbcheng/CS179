@@ -79,21 +79,42 @@ to check the bandwidth from host to device. For what value of k does the
 bottleneck switch between host-device IO and the kernel?
 
 
-The PCI-E 3.0 bandwidth is theoretically around 1 GB/s for 1x.
-For multiple lanes up to 16x, it could go upt to 16 GB/s
-(http://www.hardwaresecrets.com/printpage/everything-you-need-to-know-about-the-pci-express/190 )
-The bandwidth from host to device is:
-1923 MB /s for clusters = 50 and batch size = 1024
-
-Whether we are at saturation depends on how many lanes our PCI-E has.
+  Device: GeForce GTX 570
+  Transfer size (MB): 16
+  
+  Pageable transfers
+    Host to Device bandwidth (GB/s): 2.288118
+    Device to Host bandwidth (GB/s): 3.216550
+  
+  Pinned transfers
+    Host to Device bandwidth (GB/s): 3.297616
+    Device to Host bandwidth (GB/s): 3.346640
+  
+  The bandwidth from host to device is:
+  1923 MB /s for clusters = 50 and batch size = 1024
+  
+  The bandwidth is around 2 GB / s, which means that the cluster does not
+  saturate the PCI-E interface.
+  
+  I played around with k to try to figure out when the kernel would have a 
+  latency low enough that it goes below the latency for host device IO,
+  so that the bottleneck would switch. However, I was unsuccessful in doing so.
+  In theory, if I increase the batch_size, so that I would be increasing the 
+  amount of data transferred between device and host to increase the 
+  device IO latency. In addition, I decreased k, which is the number of cluster
+  centers. With less k, there will be less cluster centers to check
+  through and thus the kernel will take less time. However, if you decrease
+  k to a much lower number, you see the latency to increase because we are using
+  atomic adds, so as k decreases, theres more chance theres blocking because
+  we are incrementing the same cluster count. 
 
 Do you think you could improve performance using multiple GPUs? If so, how?
 If not, why not?
 
-We could improve performance using multiple GPUs. To do this we will take 
-advantage of data parallelism. This will effectively remove throughput
-bottlenecks. In our code we will split data amongst all our GPUs. One of the
-GPUs can hold the data with the cluster center locations and counts, and the
-other GPUS can access their peer GPU and the cluster data that they need
-to update. This means that we can speed up the computation even more by
-parallelizing it even more between GPUs.
+  We could improve performance using multiple GPUs. To do this we will take 
+  advantage of data parallelism. This will effectively remove throughput
+  bottlenecks. In our code we will split data amongst all our GPUs. One of the
+  GPUs can hold the data with the cluster center locations and counts, and the
+  other GPUS can access their peer GPU and the cluster data that they need
+  to update. This means that we can speed up the computation even more by
+  parallelizing it even more between GPUs.  
