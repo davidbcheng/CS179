@@ -280,7 +280,7 @@ void cluster(int k, int batch_size) {
 
 int main() {
   // cluster(5, 32);
-  cluster(10, 16364);
+  cluster(50, 2048);
   // For Timing
   // printf("Host to Device: %f\n", hostToDeviceTime);
   // printf("Kernel: %f\n", kernelTime);
